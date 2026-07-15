@@ -3,6 +3,12 @@ const savedHunSize = localStorage.getItem('hun_size') || 17;
 document.documentElement.style.setProperty('--hanja-size', savedHanjaSize + 'px');
 document.documentElement.style.setProperty('--hun-size', savedHunSize + 'px');
 
+let currentGrade = localStorage.getItem('hanja_grade') || '4급';
+let totalPages = 12; 
+
+// 💡 신규 추가: 로컬스토리지 연동 발음 임계값 변수 바인딩 (기본값 60% = 0.6)
+let currentThreshold = parseFloat(localStorage.getItem('hanja_threshold')) || 0.6;
+
 let activeTab = 1;
 let preFavoriteTab = 1; 
 let isQuizMode = false;
@@ -16,7 +22,7 @@ let defaultHunSizePx = parseInt(savedHunSize);
 let solvedHanjas = new Set();
 const tabCache = {};
 let isFavoritesDirty = true; 
-const tabsNeedReset = new Set(); // 비노출 탭들의 JIT 리셋 관리를 위한 스케줄링 세트
+const tabsNeedReset = new Set();
 
 let evaluationTargetIndex = null;
 let processingTargetIndex = null; 
@@ -72,7 +78,7 @@ function updateCellStarUI(index, isStarred) {
         starWrapper.className = `star-wrapper-${index} btn-mini-icon type-star ${isStarred ? 'starred' : 'unstarred'}`;
     });
 
-    const targetTab = Math.floor(index / 50) + 1; // 50자 규격 맵핑 조정
+    const targetTab = Math.floor(index / 50) + 1;
     if (tabCache[targetTab]) {
         const cachedWrapper = tabCache[targetTab].querySelector(`.star-wrapper-${index}`);
         if (cachedWrapper) {
@@ -92,10 +98,14 @@ function updateModalStarState(index) {
 }
 
 function preRenderStaticTables() {
-    for (let t = 1; t <= 12; t++) { // 50자 단위 분할에 따라 12페이지로 분할 확장
+    for (let key in tabCache) {
+        if (key !== "13") delete tabCache[key];
+    }
+    
+    for (let t = 1; t <= totalPages; t++) { 
         const startIdx = (t - 1) * 50;
         const startIdxText = startIdx + 1;
-        const endIdx = startIdx + 50;
+        const endIdx = Math.min(startIdx + 50, hanjaData.length);
         const pageData = hanjaData.slice(startIdx, endIdx).map((item, localIdx) => ({
             ...item,
             originalIdx: startIdx + localIdx
@@ -106,7 +116,7 @@ function preRenderStaticTables() {
         tableDiv.innerHTML = generateTableHTML(t, pageData, `${startIdxText} ~ ${endIdx}자`);
         tabCache[t] = tableDiv;
     }
-    appLog('System', '고정 탭 1 ~ 12 선행 렌더링 캐싱 엔진 수립 완료');
+    appLog('System', `고정 탭 1 ~ ${totalPages} 선행 렌더링 캐싱 엔진 수립 완료`);
 }
 
 function buildFavoritesDOM() {
@@ -130,7 +140,7 @@ function buildFavoritesDOM() {
         return tableWrapper;
     }
 
-    tableWrapper.innerHTML = generateTableHTML(13, pageData, titleLabel); // 즐겨찾기는 13번 고유 공간으로 격상
+    tableWrapper.innerHTML = generateTableHTML(13, pageData, titleLabel);
     return tableWrapper;
 }
 
@@ -183,14 +193,14 @@ function generateTableHTML(t, pageData, titleLabel) {
 function prevPage() {
     if (activeTab === 13) return;
     let target = activeTab - 1;
-    if (target < 1) target = 12;
+    if (target < 1) target = totalPages;
     switchTab(target);
 }
 
 function nextPage() {
     if (activeTab === 13) return;
     let target = activeTab + 1;
-    if (target > 12) target = 1;
+    if (target > totalPages) target = 1;
     switchTab(target);
 }
 
@@ -235,6 +245,10 @@ function switchTab(tabNum) {
         }
         container.appendChild(tabCache[13]);
     } else {
+        if (tabNum > totalPages) {
+            tabNum = 1;
+            activeTab = 1;
+        }
         if (tabsNeedReset.has(tabNum)) {
             resetSingleTabDOM(tabNum);
             tabsNeedReset.delete(tabNum);
@@ -255,7 +269,7 @@ function switchTab(tabNum) {
         }
         if (btnPrev) btnPrev.className = "btn-header-ctrl disabled";
         if (btnNext) btnNext.className = "btn-header-ctrl disabled";
-        if (pageIndicator) pageIndicator.innerText = "★ / 12";
+        if (pageIndicator) pageIndicator.innerText = `★ / ${totalPages}`;
     } else {
         if (tabBtn7) tabBtn7.className = "btn-header-ctrl";
         if (pagerWrapper) {
@@ -263,7 +277,7 @@ function switchTab(tabNum) {
         }
         if (btnPrev) btnPrev.className = "btn-header-ctrl";
         if (btnNext) btnNext.className = "btn-header-ctrl";
-        if (pageIndicator) pageIndicator.innerText = `${tabNum} / 12`;
+        if (pageIndicator) pageIndicator.innerText = `${tabNum} / ${totalPages}`;
     }
 
     appLog('System', `화면 탭 전환 ➡️ 대상 탭: ${tabNum === 13 ? '★ 즐겨찾기' : tabNum + '페이지'}`);
@@ -282,7 +296,7 @@ function toggleSolvedState(globalIdx, forceSolved) {
         span.classList.toggle('solved', isSolved);
     });
 
-    const targetTab = Math.floor(globalIdx / 50) + 1; // 50자 규격 동기화
+    const targetTab = Math.floor(globalIdx / 50) + 1;
     if (tabCache[targetTab]) {
         const cachedSpan = tabCache[targetTab].querySelector(`#hun-text-${globalIdx}`);
         if (cachedSpan) {
@@ -290,7 +304,6 @@ function toggleSolvedState(globalIdx, forceSolved) {
         }
     }
 
-    // ◀ [동기화 추가] 13번 즐겨찾기 인메모리 캐시 레이어 내부에 해당 한자가 존재할 경우 정답 상태 상호 정밀 동기화
     if (tabCache[13]) {
         const cachedFavSpan = tabCache[13].querySelector(`#hun-text-${globalIdx}`);
         if (cachedFavSpan) {
@@ -369,9 +382,10 @@ function handleToggleVoiceQuiz(index) {
     updateCardUIState(index, 'touch');
     appLog('System', `한자 터치 토글 시동 ➡️ #${index + 1}`);
 
+    // 💡 개선: 하드코딩되었던 0.6 수치를 환경설정 값인 'currentThreshold' 변수와 동적 바인딩
     speechEngine.start({
         targetText: hanjaData[index].m, 
-        threshold: 0.6,                
+        threshold: currentThreshold,                
         timeoutMs: 5000,               
         onStart: function() {
             isListening = true;
@@ -449,6 +463,181 @@ function closeModal() {
     appLog('System', '상세 모달 팝업 닫힘');
 }
 
+function getEum(m) {
+    if (!m) return "";
+    const parts = m.trim().split(/\s+/);
+    const lastPart = parts[parts.length - 1] || "";
+    return lastPart.split(',')[0] || lastPart;
+}
+
+function loadGradeData(targetGrade) {
+    const targetIndex = GRADE_ORDER.indexOf(targetGrade);
+    if (targetIndex === -1) return;
+
+    let accumulated = [];
+    for (let i = 0; i <= targetIndex; i++) {
+        const gradeKey = GRADE_ORDER[i];
+        if (hanjaNewData[gradeKey] && Array.isArray(hanjaNewData[gradeKey])) {
+            hanjaNewData[gradeKey].forEach(item => {
+                if (!accumulated.some(accItem => accItem.h === item.h)) {
+                    accumulated.push(item);
+                }
+            });
+        }
+    }
+
+    accumulated.sort((a, b) => {
+        const eumA = getEum(a.m);
+        const eumB = getEum(b.m);
+        return eumA.localeCompare('ko') || a.m.localeCompare('ko');
+    });
+
+    hanjaData.length = 0;
+    hanjaData.push(...accumulated);
+
+    totalPages = Math.ceil(hanjaData.length / 50);
+    if (totalPages === 0) totalPages = 1;
+
+    appLog('System', `급수 전환 ➡️ [${targetGrade}] 데이터 로드 완료 (총 ${hanjaData.length}자, ${totalPages}페이지)`);
+}
+
+function openGradeModal() {
+    renderGradeGrid();
+    const modal = document.getElementById('grade-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('.transform').classList.remove('scale-95');
+        modal.querySelector('.transform').classList.add('scale-100');
+    }, 10);
+    appLog('System', '학습 급수 선택 모달 오픈');
+}
+
+function closeGradeModal() {
+    const modal = document.getElementById('grade-modal');
+    if (!modal) return;
+    modal.classList.add('opacity-0');
+    const transformTarget = modal.querySelector('.transform');
+    if (transformTarget) {
+        transformTarget.classList.add('scale-95');
+        transformTarget.classList.remove('scale-100');
+    }
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+    appLog('System', '학습 급수 선택 모달 닫힘');
+}
+
+function renderGradeGrid() {
+    const container = document.getElementById('grade-grid-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    GRADE_ORDER.forEach(grade => {
+        const hasData = hanjaNewData[grade] && Array.isArray(hanjaNewData[grade]) && hanjaNewData[grade].length > 0;
+        const isCurrent = currentGrade === grade;
+        
+        const btn = document.createElement('button');
+        
+        if (hasData) {
+            btn.className = `p-4 rounded-2xl border text-sm font-black transition-all transform active:scale-95 flex flex-col items-center justify-center gap-1 cursor-pointer focus:outline-none ${
+                isCurrent 
+                ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-400'
+            }`;
+            btn.onclick = () => {
+                changeAppGrade(grade);
+                closeGradeModal();
+            };
+        } else {
+            btn.className = 'p-4 rounded-2xl border border-slate-200 bg-slate-100 text-slate-400 opacity-60 flex flex-col items-center justify-center gap-1 cursor-not-allowed pointer-events-none select-none';
+            btn.disabled = true;
+        }
+
+        const countText = hasData ? `${hanjaNewData[grade].length}자` : '준비중';
+        
+        btn.innerHTML = `
+            <span class="text-base">${grade}</span>
+            <span class="text-[10px] font-medium opacity-80">${countText}</span>
+        `;
+        container.appendChild(btn);
+    });
+}
+
+function changeAppGrade(targetGrade) {
+    if (isCardLock) {
+        appLog('Error', '현재 마이크 가동 중이거나 채점 중에는 급수를 변경할 수 없습니다.');
+        return;
+    }
+
+    currentGrade = targetGrade;
+    localStorage.setItem('hanja_grade', targetGrade);
+
+    loadGradeData(targetGrade);
+    preRenderStaticTables();
+
+    const titleEl = document.getElementById('header-grade-title');
+    if (titleEl) {
+        titleEl.innerText = `${targetGrade} 한자 마스터`;
+    }
+
+    switchTab(1);
+    appLog('System', `학습 대상 급수가 [${targetGrade}]로 완전히 변경되었습니다.`);
+}
+
+// 💡 신규 추가: 환경 설정(감도 조절) 모달 제어 함수
+function openSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    
+    // 현재 임계값으로 슬라이더 UI 갱신
+    const slider = document.getElementById('threshold-slider');
+    const display = document.getElementById('threshold-value-display');
+    if (slider && display) {
+        const percentVal = Math.round(currentThreshold * 100);
+        slider.value = percentVal;
+        display.innerText = `${percentVal}%`;
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('.transform').classList.remove('scale-95');
+        modal.querySelector('.transform').classList.add('scale-100');
+    }, 10);
+    appLog('System', '환경 설정 모달 오픈');
+}
+
+function closeSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    modal.classList.add('opacity-0');
+    const transformTarget = modal.querySelector('.transform');
+    if (transformTarget) {
+        transformTarget.classList.add('scale-95');
+        transformTarget.classList.remove('scale-100');
+    }
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+    appLog('System', '환경 설정 모달 닫힘');
+}
+
+function updateThresholdFromSlider(value) {
+    const thresholdVal = parseFloat(value) / 100;
+    currentThreshold = thresholdVal;
+    localStorage.setItem('hanja_threshold', thresholdVal);
+    
+    const display = document.getElementById('threshold-value-display');
+    if (display) {
+        display.innerText = `${value}%`;
+    }
+    appLog('System', `발음 정답 판정 기준 변경 ➡️ ${value}%`);
+}
+
 function handleTitleClick(e) {
     if (e) {
         e.stopPropagation();
@@ -502,7 +691,15 @@ function appLog(category, message) {
 }
 
 window.onload = function() {
-    appLog('System', '4급 배정한자 플랫폼 학습 엔진 초기화 가동 (공식 버전: {{APP_VERSION}})');
+    appLog('System', `한자 마스터 학습 엔진 초기화 가동 (선택 급수: ${currentGrade}, 판정 기준: ${Math.round(currentThreshold * 100)}%)`);
+    
+    loadGradeData(currentGrade);
+
+    const titleEl = document.getElementById('header-grade-title');
+    if (titleEl) {
+        titleEl.innerText = `${currentGrade} 한자 마스터`;
+    }
+
     preRenderStaticTables();
     activeFavoriteIndices = [...bookmarks];
     
@@ -567,13 +764,10 @@ window.onload = function() {
                 isCardLock = false; 
 
                 speechEngine.abort();
-
-                // [JIT 스팟 리셋 기전 활성화] 현재 화면에 노출된 활성 탭만 즉시 무력화 소진
                 resetSingleTabDOM(activeTab);
 
-                // 보이지 않는 나머지 모든 영역은 세트에 등록 후 진입 시점에 순차 초기화 유도
                 tabsNeedReset.clear();
-                for (let i = 1; i <= 12; i++) {
+                for (let i = 1; i <= totalPages; i++) {
                     if (i !== activeTab) tabsNeedReset.add(i);
                 }
                 if (activeTab !== 13) tabsNeedReset.add(13);
@@ -592,8 +786,22 @@ window.onload = function() {
     document.getElementById('detail-modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
+    
+    document.getElementById('grade-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeGradeModal();
+    });
+
+    // 💡 신규 추가: 설정 모달 바깥 영역 클릭 대응
+    document.getElementById('settings-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeSettingsModal();
+    });
+
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
+        if (e.key === 'Escape') {
+            closeModal();
+            closeGradeModal();
+            closeSettingsModal();
+        }
     });
 
     document.getElementById('console-clear-btn').addEventListener('click', () => {
