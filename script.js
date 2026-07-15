@@ -470,6 +470,7 @@ function getEum(m) {
     return lastPart.split(',')[0] || lastPart;
 }
 
+// script.js 의 loadGradeData 함수 내부 정렬 로직 수정
 function loadGradeData(targetGrade) {
     const targetIndex = GRADE_ORDER.indexOf(targetGrade);
     if (targetIndex === -1) return;
@@ -486,10 +487,11 @@ function loadGradeData(targetGrade) {
         }
     }
 
+    // 💡 수정 완료: eumA와 eumB를 올바르게 비교하도록 교정
     accumulated.sort((a, b) => {
         const eumA = getEum(a.m);
         const eumB = getEum(b.m);
-        return eumA.localeCompare('ko') || a.m.localeCompare('ko');
+        return eumA.localeCompare(eumB, 'ko') || a.m.localeCompare(b.m, 'ko');
     });
 
     hanjaData.length = 0;

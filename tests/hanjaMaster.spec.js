@@ -259,6 +259,7 @@ test.describe('배정 한자 마스터 - 예외 케이스 및 데이터 무결�
 
 test.describe('배정 한자 마스터 - 신규 모달 레이어 및 옵션 설정 검증', () => {
 
+  // tests/hanjaMaster.spec.js 의 시나리오 11 부분 수정
   test('시나리오 11: 급수 선택 그리드 모달 기동 및 데이터 유무 비활성화 무결성 테스트', async ({ page }) => {
     // 1. 헤더의 급수 선택 트리거 버튼 클릭
     const gradeTrigger = page.locator('button:has-text("한자 마스터")');
@@ -267,8 +268,8 @@ test.describe('배정 한자 마스터 - 신규 모달 레이어 및 옵션 설�
     const gradeModal = page.locator('#grade-modal');
     await expect(gradeModal).toBeVisible();
 
-    // 4급 한자는 데이터가 있으므로 확실히 비활성화 되어있지 않은지 검증
-    const activeGradeBtn = gradeModal.locator('button:has-text("4급")');
+    // 💡 수정 완료: 준4급과 충돌하지 않도록 내부 <span> 태그의 텍스트가 정확히 "4급"인 버튼만 선별
+    const activeGradeBtn = gradeModal.locator('button').filter({ has: page.locator('span', { hasText: /^4급$/ }) });
     await expect(activeGradeBtn).not.toBeDisabled();
 
     await gradeModal.locator('button:has-text("닫기"), .theme-close').click();
