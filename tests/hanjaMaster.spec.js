@@ -172,20 +172,6 @@ test.describe('배정 한자 마스터 - 이스터에그 디버그 모듈 테스
 
 test.describe('배정 한자 마스터 - 예외 케이스 및 데이터 무결성 철벽 검증', () => {
 
-  test('시나리오 7: 글꼴 크기 동적 조작계 작동 및 로컬스토리지 영구 저장 검증', async ({ page }) => {
-    const initialHanjaSize = await page.evaluate(() => localStorage.getItem('hanja_size') || '45');
-    
-    const fontUpBtn = page.locator('button[onclick="adjustFontSize(3)"]');
-    await fontUpBtn.click();
-
-    const updatedSize = Number(initialHanjaSize) + 3;
-    const currentHanjaSize = await page.evaluate(() => localStorage.getItem('hanja_size'));
-    expect(Number(currentHanjaSize)).toBe(updatedSize);
-
-    const rootHanjaSizeStyle = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--hanja-size').trim());
-    expect(rootHanjaSizeStyle).toBe(`${updatedSize}px`);
-  });
-
   test('시나리오 8: 음성인식 실패(오답) 시 오답 피드백(❌) 및 블러 가림막 유지 검증', async ({ page }) => {
     await page.addInitScript(() => {
       window.SpeechRecognition = window.webkitSpeechRecognition = class {

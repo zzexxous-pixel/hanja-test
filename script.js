@@ -1,8 +1,3 @@
-const savedHanjaSize = localStorage.getItem('hanja_size') || 45;
-const savedHunSize = localStorage.getItem('hun_size') || 17;
-document.documentElement.style.setProperty('--hanja-size', savedHanjaSize + 'px');
-document.documentElement.style.setProperty('--hun-size', savedHunSize + 'px');
-
 let currentGrade = localStorage.getItem('hanja_grade') || '4급';
 let totalPages = 12; 
 
@@ -15,9 +10,6 @@ let isQuizMode = false;
 
 let bookmarks = JSON.parse(localStorage.getItem('hanja_bookmarks')) || [];
 let activeFavoriteIndices = [...bookmarks];
-
-let defaultHanjaSizePx = parseInt(savedHanjaSize);
-let defaultHunSizePx = parseInt(savedHunSize);
 
 let solvedHanjas = new Set();
 const tabCache = {};
@@ -34,19 +26,6 @@ let titleClickTimer = null;
 
 function saveBookmarks() {
     localStorage.setItem('hanja_bookmarks', JSON.stringify(bookmarks));
-}
-
-function adjustFontSize(amount) {
-    defaultHanjaSizePx = Math.max(16, Math.min(64, defaultHanjaSizePx + amount));
-    defaultHunSizePx = Math.max(9, Math.min(28, defaultHunSizePx + (amount > 0 ? 1 : -1)));
-    
-    document.documentElement.style.setProperty('--hanja-size', `${defaultHanjaSizePx}px`);
-    document.documentElement.style.setProperty('--hun-size', `${defaultHunSizePx}px`);
-
-    localStorage.setItem('hanja_size', defaultHanjaSizePx);
-    localStorage.setItem('hun_size', defaultHunSizePx);
-
-    appLog('System', `글꼴 변경 ➡️ 한자: ${defaultHanjaSizePx}px / 훈음: ${defaultHunSizePx}px`);
 }
 
 function toggleBookmark(index, event) {
@@ -558,8 +537,27 @@ function renderGradeGrid() {
             btn.disabled = true;
         }
 
-        const countText = hasData ? `${hanjaNewData[grade].length}자` : '준비중';
-        
+        let totalCount = 0;
+        if (hasData) {
+            let totalAccumulated = [];
+            const targetIndex = GRADE_ORDER.indexOf(grade);
+            // 현재 급수 단계까지 하위 급수 데이터를 누적하여 중복 제거 카운트 산출
+            for (let i = 0; i <= targetIndex; i++) {
+                const gradeKey = GRADE_ORDER[i];
+                if (hanjaNewData[gradeKey] && Array.isArray(hanjaNewData[gradeKey])) {
+                    hanjaNewData[gradeKey].forEach(item => {
+                        if (!totalAccumulated.some(accItem => accItem.h === item.h)) {
+                            totalAccumulated.push(item);
+                        }
+                    });
+                }
+            }
+            totalCount = totalAccumulated.length;
+        }
+
+        // 요구사항 매포 포맷 명세 정확히 적용
+        const countText = hasData ? `신출 ${hanjaNewData[grade].length}자 | 합계 ${totalCount}자` : '준비중';
+
         btn.innerHTML = `
             <span class="text-base">${grade}</span>
             <span class="text-[10px] font-medium opacity-80">${countText}</span>
