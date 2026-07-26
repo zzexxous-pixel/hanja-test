@@ -690,50 +690,52 @@ function appLog(category, message) {
     consoleBody.scrollTop = consoleBody.scrollHeight;
 }
 
-// 디버그 콘솔 최상단 드래그 수직 크기 조절 독립 모듈 구현
-function initConsoleTopResize() {
-    const handle = document.getElementById('dev-console-drag-handle');
-    const devConsole = document.getElementById('dev-console');
-    if (!handle || !devConsole) return;
+// 상단 드래그 바 조절 모듈 함수 정의
+function initDebugConsoleTopResize() {
+    const resizeBar = document.getElementById('dev-console-resize-bar');
+    const consoleContainer = document.getElementById('dev-console');
+    if (!resizeBar || !consoleContainer) return;
 
-    let isResizing = false;
+    let activeDrag = false;
 
-    const startResize = (e) => {
-        isResizing = true;
+    const beginDrag = (e) => {
+        activeDrag = true;
         document.body.style.cursor = 'ns-resize';
         document.body.style.userSelect = 'none';
         document.body.style.webkitUserSelect = 'none';
     };
 
-    const stopResize = () => {
-        if (isResizing) {
-            isResizing = false;
+    const terminateDrag = () => {
+        if (activeDrag) {
+            activeDrag = false;
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
             document.body.style.webkitUserSelect = '';
         }
     };
 
-    const doResize = (clientY) => {
-        if (!isResizing) return;
-        // 브라우저 전체 높이에서 마우스 커서의 Y 축 좌표를 차감하여 정밀 높이 계산
-        const newHeight = window.innerHeight - clientY;
+    const processDrag = (clientY) => {
+        if (!activeDrag) return;
+        // 하단 고정이므로 윈도우 전체 높이에서 마우스 Y좌표값을 빼서 콘솔 높이 도출
+        const targetHeight = window.innerHeight - clientY;
         
-        // 최소 높이 70px 및 최대 화면 점유율 80% 안전 락 바인딩
-        if (newHeight >= 70 && newHeight <= window.innerHeight * 0.8) {
-            devConsole.style.height = `${newHeight}px`;
+        // 최소 60px에서 뷰포트 최대 85% 범위 가드 지정
+        if (targetHeight >= 60 && targetHeight <= window.innerHeight * 0.85) {
+            consoleContainer.style.height = `${targetHeight}px`;
         }
     };
 
-    // 데스크톱 마우스 인터랙션 바인딩
-    handle.addEventListener('mousedown', startResize);
-    window.addEventListener('mousemove', (e) => doResize(e.clientY));
-    window.addEventListener('mouseup', stopResize);
+    // 데스크톱 마우스 바인딩
+    resizeBar.addEventListener('mousedown', beginDrag);
+    window.addEventListener('mousemove', (e) => processDrag(e.clientY));
+    window.addEventListener('mouseup', terminateDrag);
 
-    // 모바일/태블릿 정밀 Pointer 및 터치 하드웨어 대응
-    handle.addEventListener('touchstart', startResize);
-    window.addEventListener('touchmove', (e) => doResize(e.touches[0].clientY), { passive: true });
-    window.addEventListener('touchend', stopResize);
+    // 태블릿/모바일 터치 스펙 인터랙션 이식
+    resizeBar.addEventListener('touchstart', beginDrag);
+    window.addEventListener('touchmove', (e) => {
+        if (activeDrag) processDrag(e.touches[0].clientY);
+    }, { passive: true });
+    window.addEventListener('touchend', terminateDrag);
 }
 
 window.onload = function() {
@@ -741,9 +743,9 @@ window.onload = function() {
     
     loadGradeData(currentGrade);
     
-    // 신규 수립된 리사이즈 트래킹 모듈 기동
-    initConsoleTopResize();
-    
+    // 디버그 콘솔 상단 드래그 바 컨트롤 라이브러리 가동
+    initDebugConsoleTopResize();
+
     const titleEl = document.getElementById('header-grade-title');
     if (titleEl) {
         titleEl.innerText = `${currentGrade} 한자 마스터`;

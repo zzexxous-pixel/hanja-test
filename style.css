@@ -72,26 +72,29 @@ body.quiz-mode .quiz-blur-target:not(.solved) {
     background: #94a3b8;
 }
 
-/* 반응형 헤더 모바일/데스크탑 수평 극대화 정렬 Flexbox 레이아웃 개편 */
+/* === 수정 후 (style.css 헤더 반응형 플로우 및 콘솔 제어) === */
 .responsive-header {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* 모바일/소형 화면에서 기본 2행 배치 조립 */
+    align-items: flex-start;
     gap: 12px;
     width: 100%;
 }
+
 .header-title {
-    align-self: flex-start; /* 타이틀 좌측 정렬 */
+    width: auto;
 }
+
 .header-controls-group {
     display: flex;
     align-items: center;
-    justify-content: flex-end; /* 소형 화면 시 2행 우측 정렬 강제 */
+    justify-content: flex-end; /* 좁은 화면일 때 모든 버튼 요소를 최우측으로 배치 */
     gap: 8px;
     width: 100%;
-    flex-wrap: wrap; /* 오버플로우 방어막 */
+    flex-wrap: wrap;
 }
 
-/* 768px(태블릿 이상)일 때 완전한 수평 1행 배치로 원복 복귀 */
+/* 태블릿 및 데스크톱 넓은 가로폭 환경 환경대응 (1행 수평 배치) */
 @media (min-width: 768px) {
     .responsive-header {
         flex-direction: row;
@@ -100,7 +103,7 @@ body.quiz-mode .quiz-blur-target:not(.solved) {
     }
     .header-controls-group {
         width: auto;
-        margin-left: auto; /* 데스크톱 환경 우측 밀착 */
+        justify-content: flex-end;
     }
 }
 
@@ -180,12 +183,11 @@ body.quiz-mode .quiz-blur-target:not(.solved) {
     animation: flash-orange 0.6s ease-in-out !important;
 }
 
-/* === 개발자용 디버그 콘솔 전용 레이아웃 가속 격리 및 맞춤형 스크롤바 === */
+/* 디버그 콘솔창 자체의 native resize 락 전면 파괴 및 고정 구조화 */
 #dev-console {
-    resize: vertical !important;   /* 세로 드래그 크기 조절 허용 */
-    overflow: hidden !important;   /* 레이아웃 파괴 방지 및 resize 활성화 조건 */
-    height: 12rem !important;      /* 초기 기본 높이 명시 */
-    min-height: 90px !important;   /* 최소 축소 한계선 고정 */
+    resize: none !important;      /* 기본 우측 하단 조절 핸들 바 비활성화 */
+    overflow: hidden !important;  /* 레이아웃 구조 보호 */
+    transition: none !important;  /* 드래그 시 반응성 극대화 */
 }
 #dev-console-body {
     contain: content; /* 자바스크립트로 로그 적재 시 브라우저 Reflow 차단 */
