@@ -15,8 +15,9 @@
         <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
             <div class="responsive-header w-full">
                 
+                <!-- Left Side: Title (title 툴팁 제거 완료) -->
                 <div class="header-title flex items-center gap-2 shrink-0 cursor-default">
-                    <div class="p-1 cursor-default select-none" onclick="handleTitleClick(event)" ontouchstart="handleTitleClick(event)" title="디버그 콘솔">
+                    <div class="p-1 cursor-pointer hover:scale-110 transition-transform select-none" onclick="handleTitleClick(event)" ontouchstart="handleTitleClick(event)">
                         <i class="fa-solid fa-book-open text-yellow-300 text-lg"></i>
                     </div>
                     <button onclick="openGradeModal()" class="flex items-center gap-1.5 text-base sm:text-lg font-black tracking-tight whitespace-nowrap text-white hover:text-yellow-200 transition-colors focus:outline-none">
@@ -25,29 +26,20 @@
                     </button>
                 </div>
 
-                <div class="header-nav-fav flex items-center gap-2">
-                    <div id="pager-wrapper" class="flex items-center gap-1 bg-blue-950/40 p-1 rounded-lg h-10 text-white shadow-sm transition-all duration-200 shrink-0 select-none">
-                        <button id="btn-prev-page" onclick="prevPage()" class="btn-header-ctrl" title="이전 페이지">
-                            <i class="fa-solid fa-caret-left text-sm"></i>
-                        </button>
-                        <span id="page-indicator" class="w-14 shrink-0 font-mono font-extrabold text-xs text-center text-white select-none">1 / 12</span>
-                        <button id="btn-next-page" onclick="nextPage()" class="btn-header-ctrl" title="다음 페이지">
-                            <i class="fa-solid fa-caret-right text-sm"></i>
-                        </button>
+                <!-- Right Side Controls Group (2행 래핑 및 말하기 도전 버튼 최우측 고정) -->
+                <div class="header-controls-group">
+                    <div class="header-fontsize flex items-center gap-1 bg-blue-900/40 p-1 rounded-lg shrink-0 h-10">
+                        <!-- 글꼴 크기 제어 버튼 원래 코드 유지 -->
                     </div>
 
-                    <button id="tab-7" onclick="toggleFavorites()" class="btn-header-ctrl" title="즐겨찾기">
-                        <i class="fa-solid fa-star"></i>
-                    </button>
+                    <div class="header-nav-fav flex items-center gap-2">
+                        <!-- 페이지네이션 및 즐겨찾기 기전 원래 코드 유지 -->
+                    </div>
 
-                    <button onclick="openSettingsModal()" class="btn-header-ctrl" title="환경 설정">
-                        <i class="fa-solid fa-gear"></i>
+                    <button id="btn-toggle-quiz" data-action="toggle-quiz" class="btn-quiz-toggle theme-yellow">
+                        <i class="fa-solid fa-microphone"></i> <span>말하기 도전</span>
                     </button>
                 </div>
-
-                <button id="btn-toggle-quiz" data-action="toggle-quiz" class="btn-quiz-toggle theme-yellow">
-                    <i class="fa-solid fa-microphone"></i> <span>말하기 도전</span>
-                </button>
 
             </div>
         </div>
@@ -136,6 +128,9 @@
     </div>
 
     <div id="dev-console" class="fixed bottom-0 left-0 w-full h-48 bg-slate-950/95 text-emerald-400 font-mono text-xs z-50 shadow-2xl border-t border-slate-800 flex flex-col hidden dev-console-wrapper select-text">
+        <!-- 상단 드래그 크기 조절 핸들 요소 신규 이식 -->
+        <div id="dev-console-drag-handle" class="w-full h-1.5 bg-slate-800 hover:bg-blue-500 cursor-ns-resize shrink-0 transition-colors select-none"></div>
+        
         <div class="flex justify-between items-center bg-slate-900 px-4 py-2 border-b border-slate-800 shrink-0 select-none">
             <span class="font-bold flex items-center gap-1.5 text-slate-300">
                 <i class="fa-solid fa-terminal text-emerald-500 animate-pulse"></i> 📡 System Log

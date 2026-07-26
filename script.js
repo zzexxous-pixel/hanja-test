@@ -690,11 +690,60 @@ function appLog(category, message) {
     consoleBody.scrollTop = consoleBody.scrollHeight;
 }
 
+// 디버그 콘솔 최상단 드래그 수직 크기 조절 독립 모듈 구현
+function initConsoleTopResize() {
+    const handle = document.getElementById('dev-console-drag-handle');
+    const devConsole = document.getElementById('dev-console');
+    if (!handle || !devConsole) return;
+
+    let isResizing = false;
+
+    const startResize = (e) => {
+        isResizing = true;
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+        document.body.style.webkitUserSelect = 'none';
+    };
+
+    const stopResize = () => {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.body.style.webkitUserSelect = '';
+        }
+    };
+
+    const doResize = (clientY) => {
+        if (!isResizing) return;
+        // 브라우저 전체 높이에서 마우스 커서의 Y 축 좌표를 차감하여 정밀 높이 계산
+        const newHeight = window.innerHeight - clientY;
+        
+        // 최소 높이 70px 및 최대 화면 점유율 80% 안전 락 바인딩
+        if (newHeight >= 70 && newHeight <= window.innerHeight * 0.8) {
+            devConsole.style.height = `${newHeight}px`;
+        }
+    };
+
+    // 데스크톱 마우스 인터랙션 바인딩
+    handle.addEventListener('mousedown', startResize);
+    window.addEventListener('mousemove', (e) => doResize(e.clientY));
+    window.addEventListener('mouseup', stopResize);
+
+    // 모바일/태블릿 정밀 Pointer 및 터치 하드웨어 대응
+    handle.addEventListener('touchstart', startResize);
+    window.addEventListener('touchmove', (e) => doResize(e.touches[0].clientY), { passive: true });
+    window.addEventListener('touchend', stopResize);
+}
+
 window.onload = function() {
     appLog('System', `한자 마스터 학습 엔진 초기화 가동 (선택 급수: ${currentGrade}, 판정 기준: ${Math.round(currentThreshold * 100)}%)`);
     
     loadGradeData(currentGrade);
-
+    
+    // 신규 수립된 리사이즈 트래킹 모듈 기동
+    initConsoleTopResize();
+    
     const titleEl = document.getElementById('header-grade-title');
     if (titleEl) {
         titleEl.innerText = `${currentGrade} 한자 마스터`;

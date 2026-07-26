@@ -157,9 +157,9 @@ test.describe('배정 한자 마스터 - 자가 테스트 및 음성 인식 인�
 test.describe('배정 한자 마스터 - 이스터에그 디버그 모듈 테스트', () => {
 
   test('시나리오 6: 헤더 타이틀 5회 연타 시 개발자 시스템 로그 콘솔 활성화 검증', async ({ page }) => {
-    // 💡 [개선] 새로운 HTML 배치에 마주하여 실제 클릭 이벤트 핸들러가 달린 책 아이콘 영역을 정밀하게 클릭합니다.
-    const titleArea = page.locator('.header-title [title="디버그 콘솔"]');
-    
+    // 💡 툴팁 제거 스펙에 의거하여 책 아이콘(.fa-book-open) 클래스의 부모 요소를 타격하도록 선택자 교정 완료
+    const titleArea = page.locator('.header-title .fa-book-open').locator('..');
+
     for (let i = 0; i < 5; i++) {
       await titleArea.click();
     }

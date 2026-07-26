@@ -72,30 +72,36 @@ body.quiz-mode .quiz-blur-target:not(.solved) {
     background: #94a3b8;
 }
 
-/* 반응형 헤더 모바일/데스크탑 수평 극대화 정렬 그리드 시스템 */
+/* 반응형 헤더 모바일/데스크탑 수평 극대화 정렬 Flexbox 레이아웃 개편 */
 .responsive-header {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     width: 100%;
 }
-.header-title { grid-column: 1; grid-row: 1; justify-self: start; }
-.header-fontsize { grid-column: 2; grid-row: 1; justify-self: end; }
-.header-nav-fav { grid-column: 1; grid-row: 2; display: flex; align-items: center; gap: 8px; justify-self: start; }
-.header-quiz { grid-column: 2; grid-row: 2; justify-self: end; }
+.header-title {
+    align-self: flex-start; /* 타이틀 좌측 정렬 */
+}
+.header-controls-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* 소형 화면 시 2행 우측 정렬 강제 */
+    gap: 8px;
+    width: 100%;
+    flex-wrap: wrap; /* 오버플로우 방어막 */
+}
 
-/* 768px(태블릿 이상)일 때 1행 배치를 유지 */
+/* 768px(태블릿 이상)일 때 완전한 수평 1행 배치로 원복 복귀 */
 @media (min-width: 768px) {
     .responsive-header {
-        grid-template-columns: 1fr auto auto auto;
-        grid-template-rows: 1fr;
-        gap: 12px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
     }
-    .header-title { grid-column: 1; grid-row: 1; justify-self: start; }
-    .header-fontsize { grid-column: 2; grid-row: 1; justify-self: auto; }
-    .header-nav-fav { grid-column: 3; grid-row: 1; justify-self: auto; }
-    .header-quiz { grid-column: 4; grid-row: 1; justify-self: auto; }
+    .header-controls-group {
+        width: auto;
+        margin-left: auto; /* 데스크톱 환경 우측 밀착 */
+    }
 }
 
 /* 충분히 넓은 1024px 이상의 환경 */
