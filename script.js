@@ -556,7 +556,7 @@ function renderGradeGrid() {
         }
 
         // 요구사항 매포 포맷 명세 정확히 적용
-        const countText = hasData ? `신출 ${hanjaNewData[grade].length}자 | 합계 ${totalCount}자` : '준비중';
+        const countText = hasData ? `${totalCount}자 (+${hanjaNewData[grade].length}자)` : '준비중';
 
         btn.innerHTML = `
             <span class="text-base">${grade}</span>
