@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>한자 마스터 - 벡터 획순 & 쓰기 연습 테스트</title>
+  <title>한자 마스터 - 획순 & 쓰기 연습 테스트</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -103,27 +103,24 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    /* 田자형 캔버스 뷰포트 */
-    .canvas-wrapper {
+    /* 田자형 뷰포트 컨테이너 */
+    #writingContainer {
       width: 320px;
       height: 320px;
-      background: #ffffff;
-      border: 2px solid #cbd5e1;
       border-radius: 8px;
       overflow: hidden;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-      position: relative;
-    }
-
-    #writingCanvas {
-      width: 100%;
-      height: 100%;
-      display: block;
       cursor: crosshair;
     }
 
-    .control-group {
+    .control-row {
       width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .control-group {
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -135,7 +132,7 @@
       color: var(--text-muted);
     }
 
-    select {
+    select, input[type="text"] {
       width: 100%;
       padding: 9px 10px;
       border: 1px solid var(--border);
@@ -143,6 +140,10 @@
       font-size: 0.9rem;
       outline: none;
       background: #fff;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--primary);
     }
 
     .action-panel {
@@ -187,16 +188,6 @@
       background: var(--accent-hover);
     }
 
-    button.primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-    }
-
-    button.primary:hover:not(:disabled) {
-      background: var(--primary-hover);
-    }
-
     .info-bar {
       width: 100%;
       display: flex;
@@ -236,26 +227,28 @@
         <button class="tab-btn" id="tabPractice" data-mode="practice">직접 쓰기 연습</button>
       </div>
 
-      <!-- 2. 田자형 캔버스 뷰포트 -->
-      <div class="canvas-wrapper">
-        <canvas id="writingCanvas"></canvas>
-      </div>
+      <!-- 2. 田자형 벡터 캔버스 뷰포트 -->
+      <div id="writingContainer"></div>
 
-      <!-- 3. 한자 선택 -->
-      <div class="control-group">
-        <label for="hanjaSelect">한자 선택 (서체 마스킹 지원)</label>
-        <select id="hanjaSelect">
-          <option value="永" selected>永 (길 영 - 5획)</option>
-          <option value="水">水 (물 수 - 4획)</option>
-          <option value="木">木 (나무 목 - 4획)</option>
-          <option value="人">人 (사람 인 - 2획)</option>
-          <option value="大">大 (큰 대 - 3획)</option>
-          <option value="中">中 (가운데 중 - 4획)</option>
-          <option value="日">日 (날 일 - 4획)</option>
-          <option value="月">月 (달 월 - 4획)</option>
-          <option value="山">山 (뫼 산 - 3획)</option>
-          <option value="天">天 (하늘 천 - 4획)</option>
-        </select>
+      <!-- 3. 한자 선택 및 직접 입력 -->
+      <div class="control-row">
+        <div class="control-group">
+          <label for="hanjaSelect">추천 한자</label>
+          <select id="hanjaSelect">
+            <option value="永" selected>永 (길 영 - 5획)</option>
+            <option value="水">水 (물 수 - 4획)</option>
+            <option value="木">木 (나무 목 - 4획)</option>
+            <option value="火">火 (불 화 - 4획)</option>
+            <option value="金">金 (쇠 금 - 8획)</option>
+            <option value="龍">龍 (용 룡 - 16획)</option>
+            <option value="學">學 (배울 학 - 16획)</option>
+            <option value="福">福 (복 복 - 14획)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="customCharInput">모든 한자 입력 (9,000자 지원)</label>
+          <input type="text" id="customCharInput" maxlength="1" placeholder="한자 1글자">
+        </div>
       </div>
 
       <!-- 4. 조작 버튼 패널 -->
@@ -267,8 +260,7 @@
       </div>
 
       <div class="action-panel" id="practiceButtons" style="display: none;">
-        <button id="btnRetry" style="grid-column: span 2;">처음부터 다시 쓰기</button>
-        <button id="btnHint" class="primary" style="grid-column: span 2;">정답 1획 보기</button>
+        <button id="btnRetry" style="grid-column: span 4;">처음부터 다시 쓰기</button>
       </div>
 
       <div class="info-bar">
@@ -281,8 +273,9 @@
   <script src="../writingEngine.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('writingCanvas');
+      const container = document.getElementById('writingContainer');
       const hanjaSelect = document.getElementById('hanjaSelect');
+      const customCharInput = document.getElementById('customCharInput');
       const strokeBadge = document.getElementById('strokeBadge');
       const statusText = document.getElementById('statusText');
 
@@ -296,11 +289,10 @@
       const btnPrev = document.getElementById('btnPrev');
       const btnNext = document.getElementById('btnNext');
       const btnRetry = document.getElementById('btnRetry');
-      const btnHint = document.getElementById('btnHint');
 
       // WritingEngine 인스턴스 초기화
       const writer = new WritingEngine({
-        canvas: canvas,
+        container: container,
         char: hanjaSelect.value,
         mode: 'demo',
         onStrokeChange: (current, total) => {
@@ -308,19 +300,19 @@
         },
         onStrokeSuccess: (current, total) => {
           statusText.className = 'feedback-text success';
-          statusText.textContent = `정답! (${current}/${total} 획 완료)`;
+          statusText.textContent = `정답! (${current}/${total} 획 통과)`;
         },
         onStrokeError: (index, reason) => {
           statusText.className = 'feedback-text error';
-          statusText.textContent = reason || '다시 시도해보세요.';
+          statusText.textContent = reason;
         },
         onComplete: () => {
           statusText.className = 'feedback-text success';
-          statusText.textContent = '🎉 모든 획을 완벽하게 마스터했습니다!';
+          statusText.textContent = '🎉 모든 획을 완벽하게 완성했습니다!';
         }
       });
 
-      // 1. 모드 전환 탭 이벤트
+      // 1. 모드 전환
       tabDemo.addEventListener('click', () => {
         tabDemo.classList.add('active');
         tabPractice.classList.remove('active');
@@ -338,14 +330,24 @@
         practiceButtons.style.display = 'grid';
         writer.setMode('practice');
         statusText.className = 'feedback-text';
-        statusText.textContent = '①번 표시 위치에서 획을 그어보세요.';
+        statusText.textContent = '회색 가이드 위에 직접 한자를 써보세요.';
       });
 
-      // 2. 한자 선택 변경
+      // 2. 한자 선택 및 직접 입력
       hanjaSelect.addEventListener('change', (e) => {
+        customCharInput.value = '';
         writer.setCharacter(e.target.value);
         statusText.className = 'feedback-text';
         statusText.textContent = `'${e.target.value}' 로드 완료`;
+      });
+
+      customCharInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val) {
+          writer.setCharacter(val);
+          statusText.className = 'feedback-text';
+          statusText.textContent = `'${val}' 로드 중...`;
+        }
       });
 
       // 3. 획순 시연 조작
@@ -378,12 +380,6 @@
         writer.reset();
         statusText.className = 'feedback-text';
         statusText.textContent = '처음부터 다시 작성합니다.';
-      });
-
-      btnHint.addEventListener('click', () => {
-        writer.stepNextStroke();
-        statusText.className = 'feedback-text';
-        statusText.textContent = '1획을 건너뛰었습니다.';
       });
     });
   </script>
