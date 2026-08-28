@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>한자 마스터 - 획순 & 쓰기 테스트</title>
+  <title>한자 마스터 - 벡터 획순 & 쓰기 연습 테스트</title>
   <style>
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
       --accent: #ef4444;
       --accent-hover: #dc2626;
+      --success: #10b981;
       --bg: #f8fafc;
       --card-bg: #ffffff;
       --border: #e2e8f0;
@@ -36,7 +37,7 @@
 
     .container {
       width: 100%;
-      max-width: 480px;
+      max-width: 440px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -53,23 +54,13 @@
       font-weight: 700;
     }
 
-    .badge-group {
-      display: flex;
-      gap: 6px;
-    }
-
     .badge {
       background: #e0f2fe;
       color: #0369a1;
-      padding: 4px 8px;
+      padding: 4px 10px;
       border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .badge.accent {
-      background: #fee2e2;
-      color: #b91c1c;
+      font-size: 0.8rem;
+      font-weight: 700;
     }
 
     .card {
@@ -84,45 +75,45 @@
       gap: 14px;
     }
 
-    /* 田자형 캔버스 컨테이너 */
-    .canvas-container {
-      position: relative;
+    /* 모드 전환 탭 */
+    .tab-bar {
+      width: 100%;
+      display: flex;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 3px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 田자형 캔버스 뷰포트 */
+    #writingContainer {
       width: 320px;
       height: 320px;
-      background: #ffffff;
-      border: 2px solid #cbd5e1;
       border-radius: 8px;
       overflow: hidden;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
     }
 
-    #writingCanvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      cursor: crosshair;
-    }
-
-    .section-title {
-      width: 100%;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-top: 4px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 4px;
-    }
-
-    .controls-grid {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
     .control-group {
+      width: 100%;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -136,7 +127,7 @@
 
     select {
       width: 100%;
-      padding: 8px 10px;
+      padding: 9px 10px;
       border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.9rem;
@@ -144,36 +135,15 @@
       background: #fff;
     }
 
-    select:focus {
-      border-color: var(--primary);
-    }
-
-    .stroke-order-panel {
+    .action-panel {
       width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: #f1f5f9;
-      padding: 10px;
-      border-radius: 8px;
-    }
-
-    .btn-row-order {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
-      gap: 6px;
-      width: 100%;
-    }
-
-    .btn-row-draw {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
-      width: 100%;
     }
 
     button {
-      padding: 9px 6px;
+      padding: 10px 8px;
       font-size: 0.82rem;
       font-weight: 600;
       border-radius: 6px;
@@ -197,16 +167,6 @@
       cursor: not-allowed;
     }
 
-    button.primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-    }
-
-    button.primary:hover:not(:disabled) {
-      background: var(--primary-hover);
-    }
-
     button.accent {
       background: var(--accent);
       color: white;
@@ -217,30 +177,14 @@
       background: var(--accent-hover);
     }
 
-    .draw-options-row {
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .brush-options {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    input[type="range"] {
-      flex: 1;
-    }
-
-    input[type="color"] {
+    button.primary {
+      background: var(--primary);
+      color: white;
       border: none;
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      cursor: pointer;
-      background: none;
+    }
+
+    button.primary:hover:not(:disabled) {
+      background: var(--primary-hover);
     }
 
     .info-bar {
@@ -252,82 +196,72 @@
       border-top: 1px solid var(--border);
       padding-top: 10px;
     }
+
+    .feedback-text {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .feedback-text.error {
+      color: var(--accent);
+    }
+
+    .feedback-text.success {
+      color: var(--success);
+    }
   </style>
 </head>
 <body>
 
   <div class="container">
     <div class="header">
-      <h1>한자 획순 & 쓰기 테스트</h1>
-      <div class="badge-group">
-        <span class="badge accent" id="orderBadge">획순: 0 / 5</span>
-        <span class="badge" id="strokeBadge">필기: 0 획</span>
-      </div>
+      <h1>한자 획순 & 쓰기 연습</h1>
+      <span class="badge" id="strokeBadge">획순: 0 / 5</span>
     </div>
 
     <div class="card">
-      <!-- 田자형 캔버스 -->
-      <div class="canvas-container">
-        <canvas id="writingCanvas"></canvas>
+      <!-- 1. 모드 전환 탭 -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabDemo" data-mode="demo">획순 시연 모드</button>
+        <button class="tab-btn" id="tabPractice" data-mode="practice">직접 쓰기 연습</button>
       </div>
 
-      <!-- 1. 한자 선택 -->
-      <div class="controls-grid">
-        <div class="control-group">
-          <label for="hanjaSelect">한자 선택 (획순 지원)</label>
-          <select id="hanjaSelect">
-            <option value="永" selected>永 (길 영 - 5획)</option>
-            <option value="水">水 (물 수 - 4획)</option>
-            <option value="木">木 (나무 목 - 4획)</option>
-            <option value="火">火 (불 화 - 4획)</option>
-            <option value="金">金 (쇠 금 - 8획)</option>
-            <option value="大">大 (큰 대 - 3획)</option>
-            <option value="中">中 (가운데 중 - 4획)</option>
-            <option value="人">人 (사람 인 - 2획)</option>
-            <option value="日">日 (날 일 - 4획)</option>
-            <option value="月">月 (달 월 - 4획)</option>
-          </select>
-        </div>
+      <!-- 2. 田자형 벡터 캔버스 래퍼 -->
+      <div id="writingContainer"></div>
+
+      <!-- 3. 한자 선택 -->
+      <div class="control-group">
+        <label for="hanjaSelect">한자 선택 (서체 마스킹 지원)</label>
+        <select id="hanjaSelect">
+          <option value="永" selected>永 (길 영 - 5획)</option>
+          <option value="水">水 (물 수 - 4획)</option>
+          <option value="木">木 (나무 목 - 4획)</option>
+          <option value="人">人 (사람 인 - 2획)</option>
+          <option value="大">大 (큰 대 - 3획)</option>
+          <option value="中">中 (가운데 중 - 4획)</option>
+          <option value="日">日 (날 일 - 4획)</option>
+          <option value="月">月 (달 월 - 4획)</option>
+          <option value="山">山 (뫼 산 - 3획)</option>
+          <option value="天">天 (하늘 천 - 4획)</option>
+        </select>
       </div>
 
-      <!-- 2. 획순 가이드 컨트롤 -->
-      <div class="stroke-order-panel">
-        <div class="btn-row-order">
-          <button id="btnPlay" class="accent">▶ 재생</button>
-          <button id="btnPause">⏸ 정지</button>
-          <button id="btnPrev">◀ 이전</button>
-          <button id="btnNext">다음 ▶</button>
-          <button id="btnResetOrder">초기화</button>
-        </div>
+      <!-- 4. 조작 버튼 패널 -->
+      <div class="action-panel" id="demoButtons">
+        <button id="btnPlay" class="accent">▶ 재생</button>
+        <button id="btnPause">⏸ 정지</button>
+        <button id="btnPrev">◀ 이전</button>
+        <button id="btnNext">다음 ▶</button>
       </div>
 
-      <!-- 3. 필기 도구 -->
-      <div class="section-title">직접 쓰기 도구</div>
-      <div class="draw-options-row">
-        <div class="control-group">
-          <label for="lineWidth">붓 굵기 (<span id="widthValue">9</span>px)</label>
-          <div class="brush-options">
-            <input type="range" id="lineWidth" min="3" max="25" value="9">
-          </div>
-        </div>
-        <div class="control-group">
-          <label for="lineColor">붓 색상</label>
-          <div class="brush-options">
-            <input type="color" id="lineColor" value="#1e293b">
-          </div>
-        </div>
-      </div>
-
-      <div class="btn-row-draw">
-        <button id="btnUndo" disabled>되돌리기</button>
-        <button id="btnRedo" disabled>다시실행</button>
-        <button id="btnClear">지우기</button>
-        <button id="btnSave" class="primary">저장</button>
+      <div class="action-panel" id="practiceButtons" style="display: none;">
+        <button id="btnRetry" style="grid-column: span 2;">처음부터 다시 쓰기</button>
+        <button id="btnHint" class="primary" style="grid-column: span 2;">정답 1획 보기</button>
       </div>
 
       <div class="info-bar">
-        <span>상태: <strong id="statusText">준비 완료</strong></span>
-        <span>320 x 320 (田자형)</span>
+        <span>상태: <strong id="statusText" class="feedback-text">준비 완료</strong></span>
+        <span>田자형 (320 x 320)</span>
       </div>
     </div>
   </div>
@@ -335,104 +269,109 @@
   <script src="../writingEngine.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('writingCanvas');
+      const container = document.getElementById('writingContainer');
       const hanjaSelect = document.getElementById('hanjaSelect');
+      const strokeBadge = document.getElementById('strokeBadge');
+      const statusText = document.getElementById('statusText');
+
+      const tabDemo = document.getElementById('tabDemo');
+      const tabPractice = document.getElementById('tabPractice');
+      const demoButtons = document.getElementById('demoButtons');
+      const practiceButtons = document.getElementById('practiceButtons');
 
       const btnPlay = document.getElementById('btnPlay');
       const btnPause = document.getElementById('btnPause');
       const btnPrev = document.getElementById('btnPrev');
       const btnNext = document.getElementById('btnNext');
-      const btnResetOrder = document.getElementById('btnResetOrder');
-
-      const lineWidth = document.getElementById('lineWidth');
-      const widthValue = document.getElementById('widthValue');
-      const lineColor = document.getElementById('lineColor');
-
-      const btnUndo = document.getElementById('btnUndo');
-      const btnRedo = document.getElementById('btnRedo');
-      const btnClear = document.getElementById('btnClear');
-      const btnSave = document.getElementById('btnSave');
-
-      const orderBadge = document.getElementById('orderBadge');
-      const strokeBadge = document.getElementById('strokeBadge');
-      const statusText = document.getElementById('statusText');
+      const btnRetry = document.getElementById('btnRetry');
+      const btnHint = document.getElementById('btnHint');
 
       // WritingEngine 인스턴스 생성
       const writer = new WritingEngine({
-        canvas: canvas,
-        guideChar: hanjaSelect.value,
-        strokeWidth: lineWidth.value,
-        strokeColor: lineColor.value,
+        container: container,
+        char: hanjaSelect.value,
+        mode: 'demo',
         onStrokeChange: (current, total) => {
-          orderBadge.textContent = `획순: ${current} / ${total}`;
+          strokeBadge.textContent = `획순: ${current} / ${total}`;
         },
-        onAnimComplete: () => {
-          statusText.textContent = '획순 시연 완료';
+        onStrokeSuccess: (current, total) => {
+          statusText.className = 'feedback-text success';
+          statusText.textContent = `정답! (${current}/${total} 획 완료)`;
         },
-        onChange: (state) => {
-          strokeBadge.textContent = `필기: ${state.strokeCount} 획`;
-          btnUndo.disabled = !state.canUndo;
-          btnRedo.disabled = !state.canRedo;
+        onStrokeError: (index, reason) => {
+          statusText.className = 'feedback-text error';
+          statusText.textContent = reason || '다시 시도해보세요.';
+        },
+        onComplete: () => {
+          statusText.className = 'feedback-text success';
+          statusText.textContent = '🎉 모든 획을 완벽하게 마스터했습니다!';
         }
       });
 
-      // 1. 한자 선택 변경
-      hanjaSelect.addEventListener('change', (e) => {
-        writer.setCharacter(e.target.value);
-        statusText.textContent = `'${e.target.value}' 로드됨`;
+      // 1. 모드 전환
+      tabDemo.addEventListener('click', () => {
+        tabDemo.classList.add('active');
+        tabPractice.classList.remove('active');
+        demoButtons.style.display = 'grid';
+        practiceButtons.style.display = 'none';
+        writer.setMode('demo');
+        statusText.className = 'feedback-text';
+        statusText.textContent = '획순 시연 모드 준비';
       });
 
-      // 2. 획순 재생 컨트롤
+      tabPractice.addEventListener('click', () => {
+        tabPractice.classList.add('active');
+        tabDemo.classList.remove('active');
+        demoButtons.style.display = 'none';
+        practiceButtons.style.display = 'grid';
+        writer.setMode('practice');
+        statusText.className = 'feedback-text';
+        statusText.textContent = '①번 표시 위치에서 획을 그어보세요.';
+      });
+
+      // 2. 한자 선택 변경
+      hanjaSelect.addEventListener('change', (e) => {
+        writer.setCharacter(e.target.value);
+        statusText.className = 'feedback-text';
+        statusText.textContent = `'${e.target.value}' 로드 완료`;
+      });
+
+      // 3. 획순 시연 컨트롤
       btnPlay.addEventListener('click', () => {
         writer.playAnimation();
-        statusText.textContent = '획순 재생 중...';
+        statusText.className = 'feedback-text';
+        statusText.textContent = '획순 시연 재생 중...';
       });
 
       btnPause.addEventListener('click', () => {
         writer.pauseAnimation();
+        statusText.className = 'feedback-text';
         statusText.textContent = '일시 정지됨';
       });
 
       btnPrev.addEventListener('click', () => {
         writer.stepPrevStroke();
+        statusText.className = 'feedback-text';
         statusText.textContent = '이전 획';
       });
 
       btnNext.addEventListener('click', () => {
         writer.stepNextStroke();
+        statusText.className = 'feedback-text';
         statusText.textContent = '다음 획';
       });
 
-      btnResetOrder.addEventListener('click', () => {
-        writer.resetStrokeOrder();
-        statusText.textContent = '획순 초기화';
+      // 4. 쓰기 연습 컨트롤
+      btnRetry.addEventListener('click', () => {
+        writer.reset();
+        statusText.className = 'feedback-text';
+        statusText.textContent = '처음부터 다시 작성합니다.';
       });
 
-      // 3. 필기 도구
-      lineWidth.addEventListener('input', (e) => {
-        widthValue.textContent = e.target.value;
-        writer.setStrokeWidth(e.target.value);
-      });
-
-      lineColor.addEventListener('input', (e) => {
-        writer.setStrokeColor(e.target.value);
-      });
-
-      btnUndo.addEventListener('click', () => writer.undo());
-      btnRedo.addEventListener('click', () => writer.redo());
-      btnClear.addEventListener('click', () => {
-        writer.clear();
-        statusText.textContent = '필기 지움';
-      });
-
-      btnSave.addEventListener('click', () => {
-        const char = hanjaSelect.value || 'write';
-        const dataUrl = writer.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `hanja_${char}.png`;
-        link.href = dataUrl;
-        link.click();
-        statusText.textContent = 'PNG 다운로드 완료';
+      btnHint.addEventListener('click', () => {
+        writer.stepNextStroke();
+        statusText.className = 'feedback-text';
+        statusText.textContent = '1획을 건너뛰었습니다.';
       });
     });
   </script>
