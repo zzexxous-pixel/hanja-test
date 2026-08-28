@@ -1,103 +1,101 @@
 /**
  * writingEngine.js
- * 한자 마스터용 벡터 서체 마스킹 획순 애니메이션 & 쓰기 판정 엔진
+ * 한자 마스터용 붓글씨 서체 마스킹 획순 애니메이션 & 쓰기 판정 엔진 (Canvas 2D Path2D 기반)
  */
 (function (global) {
   'use strict';
 
-  // 표준 한자 10종 벡터 데이터 (1024x1024 표준 좌표계)
-  // strokes: 각 획의 실제 붓글씨 외곽선 패스 (Outline)
-  // medians: 각 획의 중심 궤적 좌표열 (Centerline Medians)
+  // 표준 1024x1024 벡터 글리프 & 궤적 데이터 (10종)
   const HANJA_DICT = {
     '永': {
       strokes: [
-        'M512,140 C535,140 558,160 558,190 C558,230 525,270 488,290 C470,300 455,290 455,270 C455,225 485,140 512,140 Z',
-        'M230,360 L780,360 C805,360 820,380 810,405 C795,430 760,440 710,440 L560,440 L560,780 C560,840 535,870 490,870 C450,870 440,840 440,800 L440,730 C440,680 480,440 480,440 L230,440 C205,440 190,415 200,390 C210,365 220,360 230,360 Z',
-        'M460,460 C475,470 485,490 470,510 L300,640 C280,655 260,650 250,630 C240,610 250,590 270,575 L430,465 C440,455 450,455 460,460 Z',
-        'M370,590 C385,600 390,620 375,640 L220,840 C205,860 185,865 175,845 C165,825 175,805 190,785 L340,595 C350,585 360,585 370,590 Z',
-        'M540,510 C560,510 575,525 585,545 L820,820 C845,850 835,875 805,885 C775,895 745,880 725,855 L520,560 C510,545 515,525 530,515 C533,512 537,510 540,510 Z'
+        'M470,140 C520,130 560,160 560,200 C560,240 520,290 480,300 C450,305 440,270 445,240 C450,200 455,150 470,140 Z',
+        'M200,360 L780,360 C810,360 825,380 815,405 C795,435 760,440 700,440 L560,440 L560,780 C560,840 530,880 480,880 C440,880 430,840 430,800 L430,730 C430,680 480,440 480,440 L200,440 C170,440 160,410 170,385 C180,365 190,360 200,360 Z',
+        'M460,460 C480,470 490,490 470,515 L290,650 C270,665 250,655 240,635 C230,615 240,595 260,580 L430,465 C440,455 450,455 460,460 Z',
+        'M370,590 C390,600 395,620 380,645 L210,850 C195,870 175,870 165,850 C155,830 165,805 180,785 L340,595 C350,585 360,585 370,590 Z',
+        'M540,510 C565,510 580,525 590,550 L830,830 C855,860 845,885 815,895 C785,905 755,890 735,865 L520,565 C510,545 515,525 530,515 Z'
       ],
       medians: [
-        [[512, 150], [490, 275]],
-        [[210, 395], [780, 395], [512, 395], [512, 840], [450, 770]],
-        [[460, 480], [265, 620]],
-        [[365, 605], [185, 830]],
-        [[535, 525], [800, 860]]
+        [[480, 150], [510, 270]],
+        [[200, 400], [780, 400], [520, 400], [520, 840], [450, 770]],
+        [[460, 480], [250, 625]],
+        [[370, 605], [175, 840]],
+        [[535, 525], [820, 870]]
       ]
     },
     '水': {
       strokes: [
-        'M520,130 L555,130 C570,130 580,145 580,165 L580,820 C580,875 550,900 500,900 C455,900 440,865 440,820 L440,750 C440,700 495,200 520,130 Z',
-        'M420,320 C435,330 440,350 425,370 L240,540 C220,560 200,555 190,535 C180,515 190,495 210,475 L390,325 C400,315 410,315 420,320 Z',
-        'M190,580 C205,580 220,590 230,605 L420,820 C435,840 430,860 410,875 C390,890 370,885 355,865 L170,630 C160,615 165,595 180,585 C183,582 187,580 190,580 Z',
-        'M580,360 C600,360 615,375 625,395 L840,820 C865,850 855,875 825,885 C795,895 765,880 745,855 L560,410 C550,395 555,375 570,365 C573,362 577,360 580,360 Z'
+        'M520,130 L560,130 C580,130 590,150 590,175 L590,820 C590,880 555,910 500,910 C455,910 440,870 440,825 L440,750 C440,700 500,200 520,130 Z',
+        'M420,320 C440,330 445,355 425,375 L230,550 C210,570 190,560 180,540 C170,520 180,495 200,475 L390,325 C400,315 410,315 420,320 Z',
+        'M180,580 C200,580 215,595 225,615 L420,830 C435,850 430,875 410,890 C390,905 365,895 350,875 L160,635 C150,615 155,595 170,585 Z',
+        'M580,360 C605,360 620,380 630,405 L850,830 C875,860 865,885 835,895 C805,905 775,890 755,865 L560,415 C550,395 555,375 570,365 Z'
       ],
       medians: [
-        [[535, 145], [535, 865], [455, 780]],
-        [[415, 335], [205, 525]],
-        [[180, 595], [410, 855]],
-        [[575, 375], [825, 865]]
+        [[540, 140], [540, 870], [455, 780]],
+        [[415, 335], [195, 535]],
+        [[170, 595], [410, 865]],
+        [[575, 375], [835, 875]]
       ]
     },
     '木': {
       strokes: [
-        'M170,390 L850,390 C875,390 890,415 880,440 C865,465 840,470 810,470 L210,470 C180,470 155,465 145,440 C135,415 145,390 170,390 Z',
-        'M530,130 L565,130 C580,130 590,145 590,165 L590,860 C590,895 570,910 540,910 C510,910 490,895 490,860 L490,165 C490,145 505,130 530,130 Z',
-        'M500,430 C515,440 515,460 500,480 L230,840 C215,860 190,865 175,845 C160,825 170,800 190,780 L460,435 C470,425 485,425 500,430 Z',
-        'M520,430 C540,430 555,445 565,465 L835,825 C855,850 850,875 825,885 C795,895 770,885 750,860 L500,480 C490,465 495,445 510,435 C513,432 517,430 520,430 Z'
+        'M170,390 L850,390 C880,390 895,415 885,445 C870,470 840,475 810,475 L210,475 C180,475 150,470 140,445 C130,415 140,390 170,390 Z',
+        'M530,130 L570,130 C590,130 600,150 600,175 L600,860 C600,900 575,915 540,915 C505,915 485,900 485,860 L485,175 C485,150 500,130 530,130 Z',
+        'M500,430 C520,440 520,465 500,490 L220,850 C205,870 180,875 165,855 C150,835 160,805 180,785 L460,435 Z',
+        'M520,430 C545,430 560,450 570,475 L845,835 C870,860 865,885 835,895 C805,905 780,895 760,870 L500,480 Z'
       ],
       medians: [
         [[160, 430], [860, 430]],
         [[540, 145], [540, 890]],
-        [[490, 445], [185, 835]],
-        [[520, 445], [820, 865]]
+        [[490, 445], [175, 845]],
+        [[520, 445], [830, 875]]
       ]
     },
     '人': {
       strokes: [
-        'M520,160 C545,160 560,180 550,205 L260,835 C245,865 220,870 200,855 C180,835 185,810 205,785 L480,185 C490,170 505,160 520,160 Z',
-        'M430,450 C450,450 470,465 480,485 L795,835 C820,865 815,890 785,900 C755,910 730,895 710,870 L410,510 C395,490 405,465 425,455 C427,452 429,450 430,450 Z'
+        'M520,150 C550,150 570,175 560,205 L250,845 C235,875 205,880 185,860 C165,840 170,810 190,785 L480,180 C490,165 505,150 520,150 Z',
+        'M430,450 C455,450 475,470 485,495 L805,845 C835,875 825,900 795,910 C765,920 740,905 720,880 L410,510 C395,490 405,465 430,450 Z'
       ],
       medians: [
-        [[525, 175], [210, 840]],
-        [[420, 470], [785, 875]]
+        [[530, 165], [195, 850]],
+        [[420, 470], [795, 885]]
       ]
     },
     '大': {
       strokes: [
-        'M170,370 L850,370 C875,370 890,395 880,420 C865,445 840,450 810,450 L210,450 C180,450 155,445 145,420 C135,395 145,370 170,370 Z',
-        'M520,150 C545,150 560,170 550,195 L540,410 L250,845 C235,870 210,875 190,855 C175,835 180,810 200,785 L465,410 L465,195 C465,170 485,150 520,150 Z',
-        'M470,420 C490,420 510,435 520,455 L810,835 C835,865 830,890 800,900 C770,910 745,895 725,870 L450,480 C435,460 445,435 465,425 C467,422 469,420 470,420 Z'
+        'M170,370 L850,370 C880,370 895,395 885,425 C870,450 840,455 810,455 L210,455 C180,455 150,450 140,425 C130,395 140,370 170,370 Z',
+        'M520,140 C550,140 565,165 555,195 L545,410 L240,855 C225,880 195,885 175,865 C160,845 165,815 185,790 L465,410 L465,195 C465,165 485,140 520,140 Z',
+        'M470,420 C495,420 515,440 525,465 L820,845 C850,875 840,900 810,910 C780,920 755,905 735,880 L450,485 C435,465 445,435 470,420 Z'
       ],
       medians: [
         [[160, 410], [860, 410]],
-        [[525, 165], [512, 420], [200, 845]],
-        [[465, 435], [795, 875]]
+        [[530, 155], [512, 420], [185, 855]],
+        [[465, 435], [805, 885]]
       ]
     },
     '中': {
       strokes: [
-        'M270,270 L330,270 C345,270 355,285 355,305 L355,670 C355,700 335,715 305,715 C275,715 255,700 255,670 L255,305 C255,285 260,270 270,270 Z',
-        'M290,270 L730,270 C760,270 780,290 770,320 L740,640 C735,670 710,690 680,685 C650,680 640,655 645,630 L675,350 L310,350 C280,350 270,330 275,305 C280,285 285,270 290,270 Z',
-        'M290,620 L710,620 C735,620 750,640 745,665 C735,690 715,700 685,700 L290,700 C265,700 245,690 245,665 C245,640 265,620 290,620 Z',
-        'M520,110 L555,110 C570,110 580,125 580,145 L580,890 C580,925 560,940 530,940 C500,940 480,925 480,890 L480,145 C480,125 495,110 520,110 Z'
+        'M270,270 L340,270 C360,270 370,285 370,310 L370,670 C370,705 345,720 315,720 C285,720 260,705 260,670 L260,310 C260,285 265,270 270,270 Z',
+        'M290,270 L730,270 C765,270 785,290 775,325 L745,640 C740,675 715,695 680,690 C650,685 640,655 645,630 L675,350 L310,350 C280,350 270,330 275,305 C280,285 285,270 290,270 Z',
+        'M290,620 L710,620 C740,620 755,640 750,670 C740,695 720,705 685,705 L290,705 C260,705 240,695 240,670 C240,640 260,620 290,620 Z',
+        'M520,110 L560,110 C580,110 590,130 590,155 L590,890 C590,930 565,945 530,945 C495,945 475,930 475,890 L475,155 C475,130 495,110 520,110 Z'
       ],
       medians: [
-        [[305, 285], [305, 690]],
-        [[290, 310], [745, 310], [715, 665]],
+        [[310, 285], [310, 695]],
+        [[290, 310], [745, 310], [710, 665]],
         [[280, 660], [715, 660]],
-        [[530, 125], [530, 915]]
+        [[530, 125], [530, 920]]
       ]
     },
     '日': {
       strokes: [
-        'M290,190 L350,190 C365,190 375,205 375,225 L375,810 C375,840 355,855 325,855 C295,855 275,840 275,810 L275,225 C275,205 280,190 290,190 Z',
-        'M310,190 L710,190 C740,190 760,210 750,240 L720,800 C715,830 690,850 660,845 C630,840 620,815 625,790 L655,270 L330,270 C300,270 290,250 295,225 C300,205 305,190 310,190 Z',
-        'M330,490 L670,490 C695,490 710,510 705,535 C695,560 675,570 645,570 L330,570 C305,570 285,560 285,535 C285,510 305,490 330,490 Z',
-        'M320,770 L680,770 C705,770 720,790 715,815 C705,840 685,850 655,850 L320,850 C295,850 275,840 275,815 C275,790 295,770 320,770 Z'
+        'M280,190 L350,190 C370,190 380,205 380,230 L380,810 C380,845 355,860 325,860 C295,860 270,845 270,810 L270,230 C270,205 275,190 280,190 Z',
+        'M310,190 L710,190 C745,190 765,210 755,245 L725,800 C720,835 695,855 660,850 C630,845 620,815 625,790 L655,270 L330,270 C300,270 290,250 295,225 C300,205 305,190 310,190 Z',
+        'M330,490 L670,490 C700,490 715,510 710,540 C700,565 680,575 645,575 L330,575 C300,575 280,565 280,540 C280,510 300,490 330,490 Z',
+        'M320,770 L680,770 C710,770 725,790 720,820 C710,845 690,855 655,855 L320,855 C290,855 270,845 270,820 C270,790 290,770 320,770 Z'
       ],
       medians: [
-        [[325, 205], [325, 830]],
+        [[325, 205], [325, 835]],
         [[310, 230], [725, 230], [690, 820]],
         [[310, 530], [680, 530]],
         [[305, 810], [690, 810]]
@@ -105,13 +103,13 @@
     },
     '月': {
       strokes: [
-        'M310,190 C335,190 350,210 340,235 L300,835 C295,865 270,880 240,875 C210,870 200,845 205,820 L270,235 C275,210 290,190 310,190 Z',
-        'M310,190 L690,190 C720,190 740,210 740,240 L740,810 C740,865 710,890 660,890 C620,890 605,855 605,820 L605,760 C605,715 655,270 655,270 L330,270 C300,270 290,250 295,225 C300,205 305,190 310,190 Z',
-        'M320,410 L640,410 C665,410 680,430 675,455 C665,480 645,490 615,490 L320,490 C295,490 275,480 275,455 C275,430 295,410 320,410 Z',
-        'M310,590 L640,590 C665,590 680,610 675,635 C665,660 645,670 615,670 L310,670 C285,670 265,660 265,635 C265,610 285,590 310,590 Z'
+        'M310,190 C340,190 355,210 345,240 L305,835 C300,870 270,885 240,880 C205,875 195,845 200,820 L270,240 C275,210 290,190 310,190 Z',
+        'M310,190 L690,190 C725,190 745,210 745,245 L745,810 C745,870 710,895 660,895 C620,895 605,860 605,820 L605,760 C605,715 655,270 655,270 L330,270 C300,270 290,250 295,225 C300,205 305,190 310,190 Z',
+        'M320,410 L640,410 C670,410 685,430 680,460 C670,485 650,495 615,495 L320,495 C290,495 270,485 270,460 C270,430 290,410 320,410 Z',
+        'M310,590 L640,590 C665,590 680,610 675,640 C665,665 645,675 615,675 L310,675 C280,675 260,665 260,640 C260,610 280,590 310,590 Z'
       ],
       medians: [
-        [[315, 205], [235, 850]],
+        [[315, 205], [235, 855]],
         [[310, 230], [710, 230], [710, 855], [620, 790]],
         [[305, 450], [650, 450]],
         [[295, 630], [650, 630]]
@@ -119,28 +117,28 @@
     },
     '山': {
       strokes: [
-        'M520,170 L555,170 C570,170 580,185 580,205 L580,810 C580,845 560,860 530,860 C500,860 480,845 480,810 L480,205 C480,185 495,170 520,170 Z',
-        'M230,420 L290,420 C305,420 315,435 315,455 L315,770 L750,770 C780,770 795,790 790,815 C780,840 760,850 730,850 L250,850 C220,850 200,830 205,800 L215,455 C215,435 220,420 230,420 Z',
-        'M760,420 L820,420 C835,420 845,435 845,455 L845,810 C845,845 825,860 795,860 C765,860 745,845 745,810 L745,455 C745,435 750,420 760,420 Z'
+        'M520,160 L560,160 C580,160 590,180 590,205 L590,810 C590,850 565,865 530,865 C495,865 475,850 475,810 L475,205 C475,180 495,160 520,160 Z',
+        'M230,420 L290,420 C310,420 320,435 320,460 L320,770 L750,770 C785,770 800,790 795,820 C785,845 765,855 730,855 L250,855 C215,855 195,835 200,800 L210,460 C210,435 215,420 230,420 Z',
+        'M760,420 L820,420 C840,420 850,435 850,460 L850,810 C850,850 825,865 795,865 C760,865 740,850 740,810 L740,460 C740,435 745,420 760,420 Z'
       ],
       medians: [
-        [[530, 185], [530, 835]],
+        [[530, 175], [530, 835]],
         [[260, 435], [260, 810], [765, 810]],
         [[795, 435], [795, 835]]
       ]
     },
     '天': {
       strokes: [
-        'M300,250 L720,250 C745,250 760,270 755,295 C745,320 725,330 695,330 L300,330 C275,330 255,320 255,295 C255,270 275,250 300,250 Z',
-        'M170,440 L850,440 C875,440 890,465 880,490 C865,515 840,520 810,520 L210,520 C180,520 155,515 145,490 C135,465 145,440 170,440 Z',
-        'M520,260 C545,260 560,280 550,305 L540,490 L260,855 C245,880 220,885 200,865 C185,845 190,820 210,795 L465,490 L465,305 C465,280 485,260 520,260 Z',
-        'M470,500 C490,500 510,515 520,535 L810,845 C835,875 830,900 800,910 C770,920 745,905 725,880 L450,560 C435,540 445,515 465,505 C467,502 469,500 470,500 Z'
+        'M300,250 L720,250 C750,250 765,270 760,300 C750,325 730,335 695,335 L300,335 C270,335 250,325 250,300 C250,270 270,250 300,250 Z',
+        'M170,440 L850,440 C880,440 895,465 885,495 C870,520 840,525 810,525 L210,525 C180,525 150,520 140,495 C130,465 140,440 170,440 Z',
+        'M520,260 C550,260 565,280 555,310 L545,490 L255,855 C240,880 210,885 190,865 C175,845 180,815 200,790 L465,490 L465,310 C465,280 485,260 520,260 Z',
+        'M470,500 C495,500 515,520 525,545 L815,845 C845,875 835,900 805,910 C775,920 750,905 730,880 L450,560 C435,540 445,515 470,500 Z'
       ],
       medians: [
         [[280, 290], [735, 290]],
         [[160, 480], [860, 480]],
-        [[525, 275], [512, 500], [210, 855]],
-        [[465, 515], [795, 885]]
+        [[530, 275], [512, 500], [200, 855]],
+        [[465, 515], [800, 885]]
       ]
     }
   };
@@ -151,135 +149,85 @@
     }
 
     const defaultOptions = {
-      container: null,            // DOM 래퍼 엘리먼트
+      canvas: null,
       char: '永',
-      mode: 'demo',               // 'demo' (획순 시연) | 'practice' (쓰기 연습)
-      fillColor: '#1e293b',       // 완성 획 잉크 색상
-      watermarkColor: '#f1f5f9',  // 글리프 배경 음영
-      activeColor: '#ef4444',     // 진행 중 획 강조 색상
+      mode: 'demo', // 'demo' | 'practice'
       animSpeed: 1.0,
-      onStrokeChange: null,       // (current, total)
-      onStrokeSuccess: null,      // (strokeIndex, total)
-      onStrokeError: null,        // (strokeIndex, reason)
-      onComplete: null,
-      onChange: null
+      onStrokeChange: null,
+      onStrokeSuccess: null,
+      onStrokeError: null,
+      onComplete: null
     };
 
     this.options = Object.assign({}, defaultOptions, options);
-    this.container = typeof this.options.container === 'string'
-      ? document.querySelector(this.options.container)
-      : this.options.container;
+    this.canvas = typeof this.options.canvas === 'string'
+      ? document.querySelector(this.options.canvas)
+      : this.options.canvas;
 
-    if (!this.container) {
-      console.error('[WritingEngine] 유효한 컨테이너 엘리먼트가 필요합니다.');
+    if (!this.canvas) {
+      console.error('[WritingEngine] 유효한 캔버스 엘리먼트가 필요합니다.');
       return;
     }
 
+    this.ctx = this.canvas.getContext('2d');
     this.char = this.options.char || '永';
     this.mode = this.options.mode || 'demo';
     this.data = HANJA_DICT[this.char] || null;
 
-    // 상태 관리
     this.currentStrokeIndex = 0;
+    this.completedStrokeIndex = 0;
     this.isAnimating = false;
+    this.animProgress = 0.0;
     this.animRafId = null;
+    this._lastTimestamp = 0;
 
-    // 사용자 필기 판정용
-    this.userPoints = [];
     this.isDrawing = false;
+    this.userPoints = [];
+    this._pathCache = [];
 
-    this._initDOM();
-    this._bindEvents();
-    this.setCharacter(this.char);
+    this._boundHandlers = {
+      pointerDown: this._handlePointerDown.bind(this),
+      pointerMove: this._handlePointerMove.bind(this),
+      pointerUp: this._handlePointerUp.bind(this),
+      resize: this.resize.bind(this)
+    };
+
+    this._init();
   }
 
-  // Static API
   WritingEngine.getAvailablePresets = function () {
     return Object.keys(HANJA_DICT);
   };
 
   WritingEngine.prototype = {
-    _initDOM: function () {
-      this.container.innerHTML = '';
-      this.container.style.position = 'relative';
-      this.container.style.userSelect = 'none';
-      this.container.style.touchAction = 'none';
+    _init: function () {
+      this.canvas.style.touchAction = 'none';
+      this.canvas.addEventListener('pointerdown', this._boundHandlers.pointerDown);
+      this.canvas.addEventListener('pointermove', this._boundHandlers.pointerMove);
+      this.canvas.addEventListener('pointerup', this._boundHandlers.pointerUp);
+      this.canvas.addEventListener('pointercancel', this._boundHandlers.pointerUp);
+      window.addEventListener('resize', this._boundHandlers.resize);
 
-      const width = this.container.clientWidth || 320;
-      const height = this.container.clientHeight || 320;
-
-      // 1. SVG 레이어 (격자 + 마스킹 서체 + 획순 렌더러)
-      this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      this.svg.setAttribute('viewBox', '0 0 1024 1024');
-      this.svg.setAttribute('width', '100%');
-      this.svg.setAttribute('height', '100%');
-      this.svg.style.display = 'block';
-
-      // SVG 내부 레이어 그룹
-      this.defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      this.gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      this.watermarkGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      this.completedGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      this.animGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      this.hintGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-      this.svg.appendChild(this.defs);
-      this.svg.appendChild(this.gridGroup);
-      this.svg.appendChild(this.watermarkGroup);
-      this.svg.appendChild(this.completedGroup);
-      this.svg.appendChild(this.animGroup);
-      this.svg.appendChild(this.hintGroup);
-      this.container.appendChild(this.svg);
-
-      // 2. 터치 필기용 인터랙티브 Canvas
-      this.canvas = document.createElement('canvas');
-      this.canvas.style.position = 'absolute';
-      this.canvas.style.top = '0';
-      this.canvas.style.left = '0';
-      this.canvas.style.width = '100%';
-      this.canvas.style.height = '100%';
-      this.canvas.style.pointerEvents = 'auto';
-      this.ctx = this.canvas.getContext('2d');
-      this.container.appendChild(this.canvas);
-
-      this._drawTianGrid();
+      this._buildPathCache();
       this.resize();
+      this.setCharacter(this.char);
     },
 
     resize: function () {
-      const rect = this.container.getBoundingClientRect();
-      const w = rect.width || 320;
-      const h = rect.height || 320;
-      this.dpr = window.devicePixelRatio || 1;
+      const rect = this.canvas.getBoundingClientRect();
+      const w = rect.width || this.canvas.offsetWidth || 320;
+      const h = rect.height || this.canvas.offsetHeight || 320;
+      const dpr = window.devicePixelRatio || 1;
 
-      this.canvas.width = Math.round(w * this.dpr);
-      this.canvas.height = Math.round(h * this.dpr);
-      this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      this.canvas.width = Math.round(w * dpr);
+      this.canvas.height = Math.round(h * dpr);
+
+      this.dpr = dpr;
       this.width = w;
       this.height = h;
-    },
+      this.scale = (w / 1024) * dpr;
 
-    _drawTianGrid: function () {
-      this.gridGroup.innerHTML = `
-        <!-- 외곽선 -->
-        <rect x="2" y="2" width="1020" height="1020" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
-        <!-- 田자형 십자 점선 -->
-        <line x1="512" y1="0" x2="512" y2="1024" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="16 16"/>
-        <line x1="0" y1="512" x2="1024" y2="512" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="16 16"/>
-      `;
-    },
-
-    _bindEvents: function () {
-      this._onPointerDown = this._handlePointerDown.bind(this);
-      this._onPointerMove = this._handlePointerMove.bind(this);
-      this._onPointerUp = this._handlePointerUp.bind(this);
-      this._onResize = this.resize.bind(this);
-
-      this.canvas.addEventListener('pointerdown', this._onPointerDown);
-      this.canvas.addEventListener('pointermove', this._onPointerMove);
-      this.canvas.addEventListener('pointerup', this._onPointerUp);
-      this.canvas.addEventListener('pointercancel', this._onPointerUp);
-      window.addEventListener('resize', this._onResize);
+      this.redraw();
     },
 
     setCharacter: function (char) {
@@ -287,99 +235,167 @@
       this.char = char;
       this.data = HANJA_DICT[char] || null;
       this.currentStrokeIndex = 0;
-      this._renderBaseGlyph();
-      this._updateUIState();
+      this.completedStrokeIndex = 0;
+      this.userPoints = [];
+      this._buildPathCache();
+      this.redraw();
+      this._notifyStrokeChange();
     },
 
     setMode: function (mode) {
       this.stopAnimation();
-      this.mode = mode; // 'demo' | 'practice'
+      this.mode = mode;
       this.currentStrokeIndex = 0;
-      this._renderBaseGlyph();
-      this._updateUIState();
-      this._clearCanvas();
+      this.completedStrokeIndex = 0;
+      this.userPoints = [];
+      this.redraw();
+      this._notifyStrokeChange();
     },
 
-    // -----------------------------------------------------------------
-    // SVG 마스크 및 서체 음영 렌더링 파이프라인
-    // -----------------------------------------------------------------
-    _renderBaseGlyph: function () {
-      this.defs.innerHTML = '';
-      this.watermarkGroup.innerHTML = '';
-      this.completedGroup.innerHTML = '';
-      this.animGroup.innerHTML = '';
-      this.hintGroup.innerHTML = '';
-
-      if (!this.data) return;
-
-      // 1. 각 획에 대한 클립패스 및 워터마크(음영) 생성
-      this.data.strokes.forEach((pathD, idx) => {
-        // ClipPath 정의
-        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
-        clip.setAttribute('id', `clip-stroke-${idx}`);
-        const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        clipPath.setAttribute('d', pathD);
-        clip.appendChild(clipPath);
-        this.defs.appendChild(clip);
-
-        // 연한 워터마크 서체
-        const watermarkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        watermarkPath.setAttribute('d', pathD);
-        watermarkPath.setAttribute('fill', '#e2e8f0');
-        this.watermarkGroup.appendChild(watermarkPath);
-      });
-
-      this._renderCompletedStrokes();
-      this._renderPracticeHint();
-    },
-
-    _renderCompletedStrokes: function () {
-      this.completedGroup.innerHTML = '';
-      if (!this.data) return;
-
-      for (let i = 0; i < this.currentStrokeIndex && i < this.data.strokes.length; i++) {
-        const completedPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        completedPath.setAttribute('d', this.data.strokes[i]);
-        completedPath.setAttribute('fill', this.options.fillColor);
-        this.completedGroup.appendChild(completedPath);
+    _buildPathCache: function () {
+      this._pathCache = [];
+      if (!this.data || !this.data.strokes) return;
+      for (let i = 0; i < this.data.strokes.length; i++) {
+        this._pathCache.push(new Path2D(this.data.strokes[i]));
       }
     },
 
-    _renderPracticeHint: function () {
-      this.hintGroup.innerHTML = '';
-      if (this.mode !== 'practice' || !this.data) return;
-      if (this.currentStrokeIndex >= this.data.strokes.length) return;
-
-      const medians = this.data.medians[this.currentStrokeIndex];
-      if (!medians || medians.length === 0) return;
-
-      const startPt = medians[0];
-
-      // 시작점 안내 원형 펄스 배지
-      const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      pulseCircle.setAttribute('cx', startPt[0]);
-      pulseCircle.setAttribute('cy', startPt[1]);
-      pulseCircle.setAttribute('r', '26');
-      pulseCircle.setAttribute('fill', 'rgba(37, 99, 235, 0.18)');
-      pulseCircle.setAttribute('stroke', '#2563eb');
-      pulseCircle.setAttribute('stroke-width', '4');
-
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', startPt[0]);
-      text.setAttribute('y', startPt[1] + 6);
-      text.setAttribute('fill', '#1d4ed8');
-      text.setAttribute('font-size', '24');
-      text.setAttribute('font-weight', 'bold');
-      text.setAttribute('text-anchor', 'middle');
-      text.textContent = String(this.currentStrokeIndex + 1);
-
-      this.hintGroup.appendChild(pulseCircle);
-      this.hintGroup.appendChild(text);
+    _getPath2D: function (idx) {
+      return this._pathCache[idx];
     },
 
-    // -----------------------------------------------------------------
-    // 획순 붓글씨 마스킹 애니메이션 (Stroke-Order Demo)
-    // -----------------------------------------------------------------
+    redraw: function () {
+      const ctx = this.ctx;
+      if (!ctx || !this.scale) return;
+
+      ctx.save();
+      ctx.setTransform(this.scale, 0, 0, this.scale, 0, 0);
+      ctx.clearRect(0, 0, 1024, 1024);
+
+      // 1. 田자형 격자
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, 1018, 1018);
+
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([20, 20]);
+      ctx.beginPath();
+      ctx.moveTo(512, 0);
+      ctx.lineTo(512, 1024);
+      ctx.moveTo(0, 512);
+      ctx.lineTo(1024, 512);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 2. 글리프 워터마크 음영
+      if (this.data && this.data.strokes) {
+        for (let i = 0; i < this.data.strokes.length; i++) {
+          const p = this._getPath2D(i);
+          if (p) {
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fill(p);
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 3;
+            ctx.stroke(p);
+          }
+        }
+      }
+
+      // 3. 완료 획 렌더링
+      if (this.data && this.data.strokes) {
+        const endIdx = (this.mode === 'demo') ? this.currentStrokeIndex : this.completedStrokeIndex;
+        for (let i = 0; i < endIdx && i < this.data.strokes.length; i++) {
+          const p = this._getPath2D(i);
+          if (p) {
+            ctx.fillStyle = '#1e293b';
+            ctx.fill(p);
+          }
+        }
+      }
+
+      // 4. [시연 모드] 붓글씨 마스킹 애니메이션
+      if (this.mode === 'demo' && this.isAnimating && this.data) {
+        const idx = this.currentStrokeIndex;
+        if (idx < this.data.strokes.length) {
+          const p = this._getPath2D(idx);
+          const medians = this.data.medians[idx];
+
+          if (p && medians && medians.length > 1) {
+            ctx.save();
+            ctx.clip(p);
+
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 180;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(medians[0][0], medians[0][1]);
+
+            const totalSegs = medians.length - 1;
+            const curTarget = this.animProgress * totalSegs;
+            const fullIdx = Math.floor(curTarget);
+            const frac = curTarget - fullIdx;
+
+            for (let j = 0; j < fullIdx; j++) {
+              ctx.lineTo(medians[j + 1][0], medians[j + 1][1]);
+            }
+            if (fullIdx < totalSegs) {
+              const p1 = medians[fullIdx];
+              const p2 = medians[fullIdx + 1];
+              ctx.lineTo(p1[0] + (p2[0] - p1[0]) * frac, p1[1] + (p2[1] - p1[1]) * frac);
+            }
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      // 5. [연습 모드] 다음 작성 획 시작점 배지
+      if (this.mode === 'practice' && this.data) {
+        const idx = this.completedStrokeIndex;
+        if (idx < this.data.strokes.length) {
+          const medians = this.data.medians[idx];
+          if (medians && medians.length > 0) {
+            const startPt = medians[0];
+
+            ctx.beginPath();
+            ctx.arc(startPt[0], startPt[1], 36, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(37, 99, 235, 0.2)';
+            ctx.fill();
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            ctx.fillStyle = '#1d4ed8';
+            ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(idx + 1), startPt[0], startPt[1] + 2);
+          }
+        }
+      }
+
+      // 6. [연습 모드] 사용자 실시간 터치 입력 선
+      if (this.mode === 'practice' && this.userPoints.length > 1) {
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 26;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(this.userPoints[0].x, this.userPoints[0].y);
+        for (let i = 1; i < this.userPoints.length; i++) {
+          ctx.lineTo(this.userPoints[i].x, this.userPoints[i].y);
+        }
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    },
+
     playAnimation: function () {
       if (!this.data || this.mode !== 'demo') return;
 
@@ -389,71 +405,39 @@
       if (this.currentStrokeIndex >= this.data.strokes.length) {
         this.currentStrokeIndex = 0;
       }
+      this.animProgress = 0.0;
+      this._lastTimestamp = performance.now();
+      this._notifyStrokeChange();
 
-      this._animateNextStroke();
-    },
-
-    _animateNextStroke: function () {
-      if (!this.isAnimating) return;
-
-      if (this.currentStrokeIndex >= this.data.strokes.length) {
-        this.isAnimating = false;
-        this.animGroup.innerHTML = '';
-        this._renderCompletedStrokes();
-        if (typeof this.options.onComplete === 'function') {
-          this.options.onComplete();
-        }
-        return;
-      }
-
-      const idx = this.currentStrokeIndex;
-      const medians = this.data.medians[idx];
-      this._renderCompletedStrokes();
-
-      // 마스크 내부를 채워나갈 궤적 브러시 패스 생성
-      this.animGroup.innerHTML = '';
-      const sweepPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      let d = `M ${medians[0][0]} ${medians[0][1]}`;
-      for (let i = 1; i < medians.length; i++) {
-        d += ` L ${medians[i][0]} ${medians[i][1]}`;
-      }
-
-      sweepPath.setAttribute('d', d);
-      sweepPath.setAttribute('fill', 'none');
-      sweepPath.setAttribute('stroke', this.options.activeColor);
-      sweepPath.setAttribute('stroke-width', '160'); // 글리프 외곽을 완벽히 덮을 충분한 굵기
-      sweepPath.setAttribute('stroke-linecap', 'round');
-      sweepPath.setAttribute('stroke-linejoin', 'round');
-      sweepPath.setAttribute('clip-path', `url(#clip-stroke-${idx})`);
-      this.animGroup.appendChild(sweepPath);
-
-      const length = sweepPath.getTotalLength();
-      sweepPath.style.strokeDasharray = `${length}`;
-      sweepPath.style.strokeDashoffset = `${length}`;
-
-      let start = null;
-      const duration = (650 / (this.options.animSpeed || 1.0));
-
-      const step = (timestamp) => {
+      const loop = (timestamp) => {
         if (!this.isAnimating) return;
-        if (!start) start = timestamp;
-        const progress = Math.min((timestamp - start) / duration, 1.0);
 
-        sweepPath.style.strokeDashoffset = `${length * (1.0 - progress)}`;
+        const dt = Math.min((timestamp - this._lastTimestamp) / 1000, 0.1);
+        this._lastTimestamp = timestamp;
 
-        if (progress < 1.0) {
-          this.animRafId = requestAnimationFrame(step);
-        } else {
-          // 한 획 완료 후 다음 획으로 진행
+        const speed = (this.options.animSpeed || 1.0) * 1.8;
+        this.animProgress += dt * speed;
+
+        if (this.animProgress >= 1.0) {
+          this.animProgress = 0.0;
           this.currentStrokeIndex++;
-          this._updateUIState();
-          setTimeout(() => {
-            this._animateNextStroke();
-          }, 120);
+          this._notifyStrokeChange();
+
+          if (this.currentStrokeIndex >= this.data.strokes.length) {
+            this.isAnimating = false;
+            this.redraw();
+            if (typeof this.options.onComplete === 'function') {
+              this.options.onComplete();
+            }
+            return;
+          }
         }
+
+        this.redraw();
+        this.animRafId = requestAnimationFrame(loop);
       };
 
-      this.animRafId = requestAnimationFrame(step);
+      this.animRafId = requestAnimationFrame(loop);
     },
 
     pauseAnimation: function () {
@@ -466,54 +450,83 @@
 
     stopAnimation: function () {
       this.pauseAnimation();
-      this.animGroup.innerHTML = '';
-      this._renderCompletedStrokes();
-      this._updateUIState();
+      this.animProgress = 0.0;
+      this.redraw();
     },
 
     stepNextStroke: function () {
       this.stopAnimation();
       if (!this.data) return;
-      if (this.currentStrokeIndex < this.data.strokes.length) {
-        this.currentStrokeIndex++;
-        this._renderCompletedStrokes();
-        this._renderPracticeHint();
-        this._updateUIState();
+
+      if (this.mode === 'demo') {
+        if (this.currentStrokeIndex < this.data.strokes.length) {
+          this.currentStrokeIndex++;
+          this.redraw();
+          this._notifyStrokeChange();
+        }
+      } else {
+        if (this.completedStrokeIndex < this.data.strokes.length) {
+          this.completedStrokeIndex++;
+          this.userPoints = [];
+          this.redraw();
+          this._notifyStrokeChange();
+          if (this.completedStrokeIndex >= this.data.strokes.length && typeof this.options.onComplete === 'function') {
+            this.options.onComplete();
+          }
+        }
       }
     },
 
     stepPrevStroke: function () {
       this.stopAnimation();
       if (!this.data) return;
-      if (this.currentStrokeIndex > 0) {
-        this.currentStrokeIndex--;
-        this._renderCompletedStrokes();
-        this._renderPracticeHint();
-        this._updateUIState();
+
+      if (this.mode === 'demo') {
+        if (this.currentStrokeIndex > 0) {
+          this.currentStrokeIndex--;
+          this.redraw();
+          this._notifyStrokeChange();
+        }
+      } else {
+        if (this.completedStrokeIndex > 0) {
+          this.completedStrokeIndex--;
+          this.userPoints = [];
+          this.redraw();
+          this._notifyStrokeChange();
+        }
       }
     },
 
     reset: function () {
       this.stopAnimation();
       this.currentStrokeIndex = 0;
-      this._renderBaseGlyph();
-      this._updateUIState();
-      this._clearCanvas();
+      this.completedStrokeIndex = 0;
+      this.userPoints = [];
+      this.redraw();
+      this._notifyStrokeChange();
     },
 
-    _updateUIState: function () {
-      const total = this.data ? this.data.strokes.length : 0;
+    _notifyStrokeChange: function () {
       if (typeof this.options.onStrokeChange === 'function') {
-        this.options.onStrokeChange(this.currentStrokeIndex, total);
+        const cur = (this.mode === 'demo') ? this.currentStrokeIndex : this.completedStrokeIndex;
+        const total = this.data ? this.data.strokes.length : 0;
+        this.options.onStrokeChange(cur, total);
       }
     },
 
-    // -----------------------------------------------------------------
-    // 관용적 획순·방향·궤적 실시간 판정 알고리즘 (Practice Mode)
-    // -----------------------------------------------------------------
+    _toSvgPoint: function (e) {
+      const rect = this.canvas.getBoundingClientRect();
+      const clientX = e.clientX - rect.left;
+      const clientY = e.clientY - rect.top;
+      return {
+        x: (clientX / (rect.width || 320)) * 1024,
+        y: (clientY / (rect.height || 320)) * 1024
+      };
+    },
+
     _handlePointerDown: function (e) {
       if (this.mode !== 'practice' || !this.data) return;
-      if (this.currentStrokeIndex >= this.data.strokes.length) return;
+      if (this.completedStrokeIndex >= this.data.strokes.length) return;
 
       this.isDrawing = true;
       try {
@@ -522,27 +535,14 @@
 
       const pt = this._toSvgPoint(e);
       this.userPoints = [pt];
-      this._clearCanvas();
-      this._drawUserPoint(pt.cx, pt.cy);
+      this.redraw();
     },
 
     _handlePointerMove: function (e) {
       if (!this.isDrawing) return;
       const pt = this._toSvgPoint(e);
-      const prev = this.userPoints[this.userPoints.length - 1];
       this.userPoints.push(pt);
-
-      // 실시간 필기선 렌더링
-      this.ctx.save();
-      this.ctx.strokeStyle = '#2563eb';
-      this.ctx.lineWidth = 8;
-      this.ctx.lineCap = 'round';
-      this.ctx.lineJoin = 'round';
-      this.ctx.beginPath();
-      this.ctx.moveTo(prev.cx, prev.cy);
-      this.ctx.lineTo(pt.cx, pt.cy);
-      this.ctx.stroke();
-      this.ctx.restore();
+      this.redraw();
     },
 
     _handlePointerUp: function (e) {
@@ -553,40 +553,35 @@
       } catch (err) {}
 
       if (this.userPoints.length < 2) {
-        this._clearCanvas();
+        this.userPoints = [];
+        this.redraw();
         return;
       }
 
-      // 획 판정 실행
       const result = this._gradeCurrentStroke(this.userPoints);
       if (result.success) {
-        // 정답: 필기선 삭제 후 유려한 서체 획으로 착 감기듯 스냅(Snap)
-        this._clearCanvas();
-        this.currentStrokeIndex++;
-        this._renderCompletedStrokes();
-        this._renderPracticeHint();
-        this._updateUIState();
+        this.completedStrokeIndex++;
+        this.userPoints = [];
+        this.redraw();
+        this._notifyStrokeChange();
 
         if (typeof this.options.onStrokeSuccess === 'function') {
-          this.options.onStrokeSuccess(this.currentStrokeIndex, this.data.strokes.length);
+          this.options.onStrokeSuccess(this.completedStrokeIndex, this.data.strokes.length);
         }
-
-        if (this.currentStrokeIndex >= this.data.strokes.length) {
-          if (typeof this.options.onComplete === 'function') {
-            this.options.onComplete();
-          }
+        if (this.completedStrokeIndex >= this.data.strokes.length && typeof this.options.onComplete === 'function') {
+          this.options.onComplete();
         }
       } else {
-        // 오답: 부드러운 페이드아웃 + 에러 피드백
-        this._fadeCanvasError();
+        this.userPoints = [];
+        this.redraw();
         if (typeof this.options.onStrokeError === 'function') {
-          this.options.onStrokeError(this.currentStrokeIndex, result.reason);
+          this.options.onStrokeError(this.completedStrokeIndex, result.reason);
         }
       }
     },
 
     _gradeCurrentStroke: function (userPts) {
-      const medians = this.data.medians[this.currentStrokeIndex];
+      const medians = this.data.medians[this.completedStrokeIndex];
       if (!medians || medians.length < 2) return { success: false, reason: '데이터 오류' };
 
       const targetStart = medians[0];
@@ -594,9 +589,9 @@
       const userStart = [userPts[0].x, userPts[0].y];
       const userEnd = [userPts[userPts.length - 1].x, userPts[userPts.length - 1].y];
 
-      // 1. 시작점 반경 검사 (허용 반경: 240 units / 1024)
+      // 1. 시작점 반경 검사
       const startDist = Math.hypot(userStart[0] - targetStart[0], userStart[1] - targetStart[1]);
-      if (startDist > 240) {
+      if (startDist > 260) {
         return { success: false, reason: '시작 위치가 맞지 않습니다.' };
       }
 
@@ -609,12 +604,11 @@
       let diffAngle = Math.abs(targetAngle - userAngle);
       if (diffAngle > Math.PI) diffAngle = Math.PI * 2 - diffAngle;
 
-      // 60도 이상 차이나면 역방향 또는 잘못된 방향으로 판정
-      if (diffAngle > (Math.PI / 3)) {
+      if (diffAngle > (Math.PI * 0.42)) {
         return { success: false, reason: '획의 진행 방향이 다릅니다.' };
       }
 
-      // 3. 궤적 평균 거리 검사 (Point to Medians Distance)
+      // 3. 궤적 평균 거리 검사
       let totalDist = 0;
       for (let i = 0; i < userPts.length; i++) {
         const u = [userPts[i].x, userPts[i].y];
@@ -627,7 +621,7 @@
       }
       const avgDist = totalDist / userPts.length;
 
-      if (avgDist > 190) {
+      if (avgDist > 220) {
         return { success: false, reason: '획의 궤적이 벗어났습니다.' };
       }
 
@@ -642,44 +636,13 @@
       return Math.hypot(p[0] - (v[0] + t * (w[0] - v[0])), p[1] - (v[1] + t * (w[1] - v[1])));
     },
 
-    _toSvgPoint: function (e) {
-      const rect = this.canvas.getBoundingClientRect();
-      const clientX = e.clientX - rect.left;
-      const clientY = e.clientY - rect.top;
-      return {
-        x: (clientX / rect.width) * 1024,
-        y: (clientY / rect.height) * 1024,
-        cx: clientX,
-        cy: clientY
-      };
-    },
-
-    _drawUserPoint: function (cx, cy) {
-      this.ctx.beginPath();
-      this.ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-      this.ctx.fillStyle = '#2563eb';
-      this.ctx.fill();
-    },
-
-    _clearCanvas: function () {
-      this.ctx.clearRect(0, 0, this.width, this.height);
-    },
-
-    _fadeCanvasError: function () {
-      this.ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
-      this.ctx.fillRect(0, 0, this.width, this.height);
-      setTimeout(() => {
-        this._clearCanvas();
-      }, 240);
-    },
-
     destroy: function () {
       this.stopAnimation();
-      this.canvas.removeEventListener('pointerdown', this._onPointerDown);
-      this.canvas.removeEventListener('pointermove', this._onPointerMove);
-      this.canvas.removeEventListener('pointerup', this._onPointerUp);
-      this.canvas.removeEventListener('pointercancel', this._onPointerUp);
-      window.removeEventListener('resize', this._onResize);
+      this.canvas.removeEventListener('pointerdown', this._boundHandlers.pointerDown);
+      this.canvas.removeEventListener('pointermove', this._boundHandlers.pointerMove);
+      this.canvas.removeEventListener('pointerup', this._boundHandlers.pointerUp);
+      this.canvas.removeEventListener('pointercancel', this._boundHandlers.pointerUp);
+      window.removeEventListener('resize', this._boundHandlers.resize);
     }
   };
 

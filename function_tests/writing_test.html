@@ -104,12 +104,22 @@
     }
 
     /* 田자형 캔버스 뷰포트 */
-    #writingContainer {
+    .canvas-wrapper {
       width: 320px;
       height: 320px;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
       border-radius: 8px;
       overflow: hidden;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+      position: relative;
+    }
+
+    #writingCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
     }
 
     .control-group {
@@ -226,8 +236,10 @@
         <button class="tab-btn" id="tabPractice" data-mode="practice">직접 쓰기 연습</button>
       </div>
 
-      <!-- 2. 田자형 벡터 캔버스 래퍼 -->
-      <div id="writingContainer"></div>
+      <!-- 2. 田자형 캔버스 뷰포트 -->
+      <div class="canvas-wrapper">
+        <canvas id="writingCanvas"></canvas>
+      </div>
 
       <!-- 3. 한자 선택 -->
       <div class="control-group">
@@ -269,7 +281,7 @@
   <script src="../writingEngine.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const container = document.getElementById('writingContainer');
+      const canvas = document.getElementById('writingCanvas');
       const hanjaSelect = document.getElementById('hanjaSelect');
       const strokeBadge = document.getElementById('strokeBadge');
       const statusText = document.getElementById('statusText');
@@ -286,9 +298,9 @@
       const btnRetry = document.getElementById('btnRetry');
       const btnHint = document.getElementById('btnHint');
 
-      // WritingEngine 인스턴스 생성
+      // WritingEngine 인스턴스 초기화
       const writer = new WritingEngine({
-        container: container,
+        canvas: canvas,
         char: hanjaSelect.value,
         mode: 'demo',
         onStrokeChange: (current, total) => {
@@ -308,7 +320,7 @@
         }
       });
 
-      // 1. 모드 전환
+      // 1. 모드 전환 탭 이벤트
       tabDemo.addEventListener('click', () => {
         tabDemo.classList.add('active');
         tabPractice.classList.remove('active');
@@ -336,7 +348,7 @@
         statusText.textContent = `'${e.target.value}' 로드 완료`;
       });
 
-      // 3. 획순 시연 컨트롤
+      // 3. 획순 시연 조작
       btnPlay.addEventListener('click', () => {
         writer.playAnimation();
         statusText.className = 'feedback-text';
@@ -361,7 +373,7 @@
         statusText.textContent = '다음 획';
       });
 
-      // 4. 쓰기 연습 컨트롤
+      // 4. 쓰기 연습 조작
       btnRetry.addEventListener('click', () => {
         writer.reset();
         statusText.className = 'feedback-text';
