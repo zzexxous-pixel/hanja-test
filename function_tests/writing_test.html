@@ -84,7 +84,7 @@
       gap: 14px;
     }
 
-    /* 캔버스 컨테이너 (田자형 320x320) */
+    /* 田자형 캔버스 컨테이너 */
     .canvas-container {
       position: relative;
       width: 320px;
@@ -103,7 +103,6 @@
       cursor: crosshair;
     }
 
-    /* 섹션 공통 스타일 */
     .section-title {
       width: 100%;
       font-size: 0.8rem;
@@ -116,7 +115,6 @@
       padding-bottom: 4px;
     }
 
-    /* 컨트롤 그리드 */
     .controls-grid {
       width: 100%;
       display: grid;
@@ -150,7 +148,6 @@
       border-color: var(--primary);
     }
 
-    /* 획순 조작 버튼 그룹 */
     .stroke-order-panel {
       width: 100%;
       display: flex;
@@ -275,20 +272,42 @@
         <canvas id="writingCanvas"></canvas>
       </div>
 
-      <!-- 1. 한자 선택 및 田자 격자 옵션 -->
+      <!-- 1. 한자 선택 및 직접 입력 -->
       <div class="controls-grid">
         <div class="control-group">
-          <label for="hanjaPreset">프리셋 한자</label>
-          <select id="hanjaPreset"></select>
+          <label for="hanjaPreset">프리셋 한자 (획순 지원)</label>
+          <select id="hanjaPreset">
+            <option value="永" selected>永 (길 영 - 5획)</option>
+            <option value="水">水 (물 수 - 4획)</option>
+            <option value="木">木 (나무 목 - 4획)</option>
+            <option value="火">火 (불 화 - 4획)</option>
+            <option value="金">金 (쇠 금 - 8획)</option>
+            <option value="土">土 (흙 토 - 3획)</option>
+            <option value="日">日 (날 일 - 4획)</option>
+            <option value="月">月 (달 월 - 4획)</option>
+            <option value="山">山 (뫼 산 - 3획)</option>
+            <option value="天">天 (하늘 천 - 4획)</option>
+            <option value="人">人 (사람 인 - 2획)</option>
+            <option value="大">大 (큰 대 - 3획)</option>
+            <option value="中">中 (가운데 중 - 4획)</option>
+            <option value="王">王 (임금 왕 - 4획)</option>
+            <option value="文">文 (글월 문 - 4획)</option>
+            <option value="心">心 (마음 심 - 4획)</option>
+            <option value="口">口 (입 구 - 3획)</option>
+            <option value="一">一 (한 일 - 1획)</option>
+            <option value="二">二 (두 이 - 2획)</option>
+            <option value="三">三 (석 삼 - 3획)</option>
+            <option value="五">五 (다섯 오 - 4획)</option>
+            <option value="七">七 (일곱 칠 - 2획)</option>
+            <option value="九">九 (아홉 구 - 2획)</option>
+            <option value="十">十 (열 십 - 2획)</option>
+            <option value="百">百 (일백 백 - 6획)</option>
+            <option value="千">千 (일천 천 - 3획)</option>
+          </select>
         </div>
         <div class="control-group">
-          <label for="animSpeedSelect">애니메이션 속도</label>
-          <select id="animSpeedSelect">
-            <option value="0.6">0.6x (천천히)</option>
-            <option value="1.0" selected>1.0x (보통)</option>
-            <option value="1.5">1.5x (빠르게)</option>
-            <option value="2.0">2.0x (2배속)</option>
-          </select>
+          <label for="customCharInput">직접 입력 (자유 연습)</label>
+          <input type="text" id="customCharInput" maxlength="1" placeholder="한자 1글자 입력">
         </div>
       </div>
 
@@ -297,11 +316,11 @@
         <div class="checkbox-row">
           <label class="checkbox-label">
             <input type="checkbox" id="chkStrokeNumbers" checked>
-            <span>획순 번호(①,②..) 표시</span>
+            <span>획 번호(①,②..)</span>
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="chkWatermark" checked>
-            <span>연한 글자 보기</span>
+            <span>워터마크</span>
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="chkGrid" checked>
@@ -317,7 +336,7 @@
         </div>
       </div>
 
-      <!-- 3. 사용자 필기 도구 -->
+      <!-- 3. 필기 도구 및 조작 -->
       <div class="section-title">직접 쓰기 도구</div>
       <div class="controls-grid">
         <div class="control-group">
@@ -353,7 +372,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const canvas = document.getElementById('writingCanvas');
       const hanjaPreset = document.getElementById('hanjaPreset');
-      const animSpeedSelect = document.getElementById('animSpeedSelect');
+      const customCharInput = document.getElementById('customCharInput');
       
       const chkStrokeNumbers = document.getElementById('chkStrokeNumbers');
       const chkWatermark = document.getElementById('chkWatermark');
@@ -377,7 +396,7 @@
       const strokeBadge = document.getElementById('strokeBadge');
       const statusText = document.getElementById('statusText');
 
-      // WritingEngine 인스턴스 초기화
+      // WritingEngine 인스턴스 생성
       const writer = new WritingEngine({
         canvas: canvas,
         guideChar: '永',
@@ -388,6 +407,10 @@
         strokeColor: lineColor.value,
         onStrokeChange: (current, total) => {
           orderBadge.textContent = `획순: ${current} / ${total}`;
+          const hasStrokes = total > 0;
+          btnPlay.disabled = !hasStrokes;
+          btnPrev.disabled = !hasStrokes;
+          btnNext.disabled = !hasStrokes;
         },
         onAnimComplete: () => {
           statusText.textContent = '획순 시연 완료';
@@ -399,27 +422,28 @@
         }
       });
 
-      // 프리셋 셀렉트 박스 바인딩
-      const presets = writer.getAvailablePresets();
-      presets.forEach(char => {
-        const opt = document.createElement('option');
-        opt.value = char;
-        opt.textContent = `${char} (${writer.strokeOrderData ? '획순 지원' : ''})`;
-        hanjaPreset.appendChild(opt);
-      });
-      hanjaPreset.value = '永';
-
-      // 1. 한자 변경 이벤트
+      // 1. 프리셋 한자 변경
       hanjaPreset.addEventListener('change', (e) => {
+        customCharInput.value = '';
         writer.setCharacter(e.target.value);
         statusText.textContent = `'${e.target.value}' 획순 로드됨`;
       });
 
-      animSpeedSelect.addEventListener('change', (e) => {
-        writer.setAnimSpeed(Number(e.target.value));
+      // 2. 직접 입력 한자 연동
+      customCharInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val) {
+          writer.setCharacter(val);
+          if (writer.hasStrokeOrder(val)) {
+            hanjaPreset.value = val;
+            statusText.textContent = `'${val}' 프리셋 획순 적용됨`;
+          } else {
+            statusText.textContent = `'${val}' 워터마크 표시 (획순 미지원)`;
+          }
+        }
       });
 
-      // 2. 획순 가이드 조작 이벤트
+      // 3. 획순 옵션 및 조작
       chkStrokeNumbers.addEventListener('change', (e) => {
         writer.toggleStrokeNumbers(e.target.checked);
       });
@@ -452,7 +476,7 @@
         statusText.textContent = '다음 획 탐색';
       });
 
-      // 3. 사용자 필기 도구 이벤트
+      // 4. 필기 도구
       lineWidth.addEventListener('input', (e) => {
         widthValue.textContent = e.target.value;
         writer.setStrokeWidth(e.target.value);
@@ -470,9 +494,10 @@
       });
 
       btnSave.addEventListener('click', () => {
+        const char = customCharInput.value.trim() || hanjaPreset.value || 'write';
         const dataUrl = writer.toDataURL('image/png');
         const link = document.createElement('a');
-        link.download = `hanja_${hanjaPreset.value || 'write'}.png`;
+        link.download = `hanja_${char}.png`;
         link.href = dataUrl;
         link.click();
         statusText.textContent = 'PNG 다운로드 완료';

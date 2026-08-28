@@ -5,80 +5,151 @@
 (function (global) {
   'use strict';
 
-  // 내장 한자 획순 프리셋 (0.0 ~ 1.0 정규화 좌표계)
+  // 내장 한자 획순 정규화(0.0 ~ 1.0) 좌표 프리셋 (총 26자)
   const PRESET_STROKES = {
     '永': [
-      [{x:0.50, y:0.18}, {x:0.50, y:0.26}], // 1. 점(側)
-      [{x:0.25, y:0.38}, {x:0.75, y:0.38}, {x:0.50, y:0.38}, {x:0.50, y:0.85}, {x:0.42, y:0.75}], // 2. 횡절수구(勒/努/趯)
-      [{x:0.42, y:0.46}, {x:0.24, y:0.58}], // 3. 부(策)
-      [{x:0.35, y:0.60}, {x:0.18, y:0.85}], // 4. 삐침(掠)
-      [{x:0.56, y:0.52}, {x:0.85, y:0.88}]  // 5. 파임(磔)
+      [{x:0.50, y:0.18}, {x:0.50, y:0.26}],
+      [{x:0.25, y:0.38}, {x:0.75, y:0.38}, {x:0.50, y:0.38}, {x:0.50, y:0.85}, {x:0.42, y:0.75}],
+      [{x:0.42, y:0.46}, {x:0.24, y:0.58}],
+      [{x:0.35, y:0.60}, {x:0.18, y:0.85}],
+      [{x:0.56, y:0.52}, {x:0.85, y:0.88}]
     ],
     '水': [
-      [{x:0.50, y:0.15}, {x:0.50, y:0.85}, {x:0.40, y:0.75}], // 1. 수구(갈고리)
-      [{x:0.38, y:0.35}, {x:0.18, y:0.55}],                   // 2. 좌상 삐침
-      [{x:0.18, y:0.60}, {x:0.40, y:0.85}],                   // 3. 좌하 치받침
-      [{x:0.60, y:0.35}, {x:0.85, y:0.85}]                    // 4. 우측 파임
+      [{x:0.50, y:0.15}, {x:0.50, y:0.85}, {x:0.40, y:0.75}],
+      [{x:0.38, y:0.35}, {x:0.18, y:0.55}],
+      [{x:0.18, y:0.60}, {x:0.40, y:0.85}],
+      [{x:0.60, y:0.35}, {x:0.85, y:0.85}]
     ],
     '木': [
-      [{x:0.18, y:0.40}, {x:0.82, y:0.40}], // 1. 가로획
-      [{x:0.50, y:0.15}, {x:0.50, y:0.88}], // 2. 세로획
-      [{x:0.50, y:0.40}, {x:0.20, y:0.85}], // 3. 좌측 삐침
-      [{x:0.50, y:0.40}, {x:0.80, y:0.85}]  // 4. 우측 파임
-    ],
-    '大': [
-      [{x:0.18, y:0.38}, {x:0.82, y:0.38}], // 1. 가로획
-      [{x:0.50, y:0.18}, {x:0.50, y:0.42}, {x:0.22, y:0.85}], // 2. 삐침
-      [{x:0.48, y:0.42}, {x:0.78, y:0.85}]  // 3. 파임
-    ],
-    '中': [
-      [{x:0.26, y:0.28}, {x:0.26, y:0.65}], // 1. 좌 세로
-      [{x:0.26, y:0.28}, {x:0.74, y:0.28}, {x:0.74, y:0.65}], // 2. 꺾음
-      [{x:0.26, y:0.65}, {x:0.74, y:0.65}], // 3. 닫는 가로
-      [{x:0.50, y:0.12}, {x:0.50, y:0.90}]  // 4. 관통 세로
-    ],
-    '人': [
-      [{x:0.50, y:0.20}, {x:0.25, y:0.85}], // 1. 삐침
-      [{x:0.42, y:0.48}, {x:0.75, y:0.85}]  // 2. 파임
-    ],
-    '日': [
-      [{x:0.28, y:0.20}, {x:0.28, y:0.80}], // 1. 좌 세로
-      [{x:0.28, y:0.20}, {x:0.72, y:0.20}, {x:0.72, y:0.80}], // 2. 우측 꺾음
-      [{x:0.28, y:0.50}, {x:0.72, y:0.50}], // 3. 중간 가로
-      [{x:0.28, y:0.80}, {x:0.72, y:0.80}]  // 4. 밑 가로
-    ],
-    '月': [
-      [{x:0.30, y:0.20}, {x:0.28, y:0.85}], // 1. 좌 삐침
-      [{x:0.30, y:0.20}, {x:0.70, y:0.20}, {x:0.70, y:0.85}, {x:0.60, y:0.82}], // 2. 꺾어 갈고리
-      [{x:0.30, y:0.42}, {x:0.70, y:0.42}], // 3. 내부 1
-      [{x:0.30, y:0.62}, {x:0.70, y:0.62}]  // 4. 내부 2
-    ],
-    '山': [
-      [{x:0.50, y:0.20}, {x:0.50, y:0.80}], // 1. 중앙 세로
-      [{x:0.22, y:0.45}, {x:0.22, y:0.80}, {x:0.78, y:0.80}], // 2. 좌측 꺾음
-      [{x:0.78, y:0.45}, {x:0.78, y:0.80}]  // 3. 우측 세로
-    ],
-    '天': [
-      [{x:0.30, y:0.26}, {x:0.70, y:0.26}], // 1. 위 가로
-      [{x:0.18, y:0.45}, {x:0.82, y:0.45}], // 2. 아래 가로
-      [{x:0.50, y:0.26}, {x:0.50, y:0.50}, {x:0.24, y:0.85}], // 3. 삐침
-      [{x:0.48, y:0.50}, {x:0.76, y:0.85}]  // 4. 파임
+      [{x:0.18, y:0.40}, {x:0.82, y:0.40}],
+      [{x:0.50, y:0.15}, {x:0.50, y:0.88}],
+      [{x:0.50, y:0.40}, {x:0.20, y:0.85}],
+      [{x:0.50, y:0.40}, {x:0.80, y:0.85}]
     ],
     '火': [
-      [{x:0.26, y:0.42}, {x:0.34, y:0.55}], // 1. 좌 점
-      [{x:0.74, y:0.38}, {x:0.66, y:0.52}], // 2. 우 점
-      [{x:0.50, y:0.18}, {x:0.50, y:0.48}, {x:0.22, y:0.85}], // 3. 삐침
-      [{x:0.48, y:0.48}, {x:0.78, y:0.85}]  // 4. 파임
+      [{x:0.26, y:0.42}, {x:0.34, y:0.55}],
+      [{x:0.74, y:0.38}, {x:0.66, y:0.52}],
+      [{x:0.50, y:0.18}, {x:0.50, y:0.48}, {x:0.22, y:0.85}],
+      [{x:0.48, y:0.48}, {x:0.78, y:0.85}]
     ],
     '金': [
-      [{x:0.50, y:0.15}, {x:0.25, y:0.40}], // 1. 사람인 삐침
-      [{x:0.45, y:0.25}, {x:0.75, y:0.40}], // 2. 사람인 파임
-      [{x:0.35, y:0.45}, {x:0.65, y:0.45}], // 3. 가로 1
-      [{x:0.25, y:0.60}, {x:0.75, y:0.60}], // 4. 가로 2
-      [{x:0.50, y:0.45}, {x:0.50, y:0.82}], // 5. 세로
-      [{x:0.36, y:0.68}, {x:0.30, y:0.78}], // 6. 좌 점
-      [{x:0.64, y:0.68}, {x:0.70, y:0.78}], // 7. 우 점
-      [{x:0.18, y:0.85}, {x:0.82, y:0.85}]  // 8. 밑 가로
+      [{x:0.50, y:0.15}, {x:0.25, y:0.40}],
+      [{x:0.45, y:0.25}, {x:0.75, y:0.40}],
+      [{x:0.35, y:0.45}, {x:0.65, y:0.45}],
+      [{x:0.25, y:0.60}, {x:0.75, y:0.60}],
+      [{x:0.50, y:0.45}, {x:0.50, y:0.82}],
+      [{x:0.36, y:0.68}, {x:0.30, y:0.78}],
+      [{x:0.64, y:0.68}, {x:0.70, y:0.78}],
+      [{x:0.18, y:0.85}, {x:0.82, y:0.85}]
+    ],
+    '土': [
+      [{x:0.28, y:0.42}, {x:0.72, y:0.42}],
+      [{x:0.50, y:0.18}, {x:0.50, y:0.85}],
+      [{x:0.18, y:0.85}, {x:0.82, y:0.85}]
+    ],
+    '日': [
+      [{x:0.28, y:0.20}, {x:0.28, y:0.80}],
+      [{x:0.28, y:0.20}, {x:0.72, y:0.20}, {x:0.72, y:0.80}],
+      [{x:0.28, y:0.50}, {x:0.72, y:0.50}],
+      [{x:0.28, y:0.80}, {x:0.72, y:0.80}]
+    ],
+    '月': [
+      [{x:0.30, y:0.20}, {x:0.28, y:0.85}],
+      [{x:0.30, y:0.20}, {x:0.70, y:0.20}, {x:0.70, y:0.85}, {x:0.60, y:0.82}],
+      [{x:0.30, y:0.42}, {x:0.70, y:0.42}],
+      [{x:0.30, y:0.62}, {x:0.70, y:0.62}]
+    ],
+    '山': [
+      [{x:0.50, y:0.20}, {x:0.50, y:0.80}],
+      [{x:0.22, y:0.45}, {x:0.22, y:0.80}, {x:0.78, y:0.80}],
+      [{x:0.78, y:0.45}, {x:0.78, y:0.80}]
+    ],
+    '天': [
+      [{x:0.30, y:0.26}, {x:0.70, y:0.26}],
+      [{x:0.18, y:0.45}, {x:0.82, y:0.45}],
+      [{x:0.50, y:0.26}, {x:0.50, y:0.50}, {x:0.24, y:0.85}],
+      [{x:0.48, y:0.50}, {x:0.76, y:0.85}]
+    ],
+    '人': [
+      [{x:0.50, y:0.20}, {x:0.25, y:0.85}],
+      [{x:0.42, y:0.48}, {x:0.75, y:0.85}]
+    ],
+    '大': [
+      [{x:0.18, y:0.38}, {x:0.82, y:0.38}],
+      [{x:0.50, y:0.18}, {x:0.50, y:0.42}, {x:0.22, y:0.85}],
+      [{x:0.48, y:0.42}, {x:0.78, y:0.85}]
+    ],
+    '中': [
+      [{x:0.26, y:0.28}, {x:0.26, y:0.65}],
+      [{x:0.26, y:0.28}, {x:0.74, y:0.28}, {x:0.74, y:0.65}],
+      [{x:0.26, y:0.65}, {x:0.74, y:0.65}],
+      [{x:0.50, y:0.12}, {x:0.50, y:0.90}]
+    ],
+    '王': [
+      [{x:0.28, y:0.25}, {x:0.72, y:0.25}],
+      [{x:0.50, y:0.25}, {x:0.50, y:0.82}],
+      [{x:0.32, y:0.52}, {x:0.68, y:0.52}],
+      [{x:0.18, y:0.82}, {x:0.82, y:0.82}]
+    ],
+    '文': [
+      [{x:0.50, y:0.18}, {x:0.50, y:0.30}],
+      [{x:0.20, y:0.38}, {x:0.80, y:0.38}],
+      [{x:0.50, y:0.38}, {x:0.24, y:0.82}],
+      [{x:0.38, y:0.52}, {x:0.78, y:0.84}]
+    ],
+    '心': [
+      [{x:0.30, y:0.52}, {x:0.24, y:0.64}],
+      [{x:0.35, y:0.46}, {x:0.46, y:0.80}, {x:0.76, y:0.80}, {x:0.76, y:0.62}],
+      [{x:0.50, y:0.42}, {x:0.50, y:0.55}],
+      [{x:0.74, y:0.36}, {x:0.80, y:0.50}]
+    ],
+    '口': [
+      [{x:0.28, y:0.28}, {x:0.28, y:0.75}],
+      [{x:0.28, y:0.28}, {x:0.72, y:0.28}, {x:0.72, y:0.75}],
+      [{x:0.28, y:0.75}, {x:0.72, y:0.75}]
+    ],
+    '一': [
+      [{x:0.20, y:0.50}, {x:0.80, y:0.50}]
+    ],
+    '二': [
+      [{x:0.30, y:0.36}, {x:0.70, y:0.36}],
+      [{x:0.18, y:0.66}, {x:0.82, y:0.66}]
+    ],
+    '三': [
+      [{x:0.26, y:0.30}, {x:0.74, y:0.30}],
+      [{x:0.32, y:0.50}, {x:0.68, y:0.50}],
+      [{x:0.18, y:0.72}, {x:0.82, y:0.72}]
+    ],
+    '五': [
+      [{x:0.25, y:0.25}, {x:0.75, y:0.25}],
+      [{x:0.48, y:0.25}, {x:0.38, y:0.78}],
+      [{x:0.38, y:0.52}, {x:0.70, y:0.52}, {x:0.70, y:0.78}],
+      [{x:0.20, y:0.78}, {x:0.80, y:0.78}]
+    ],
+    '七': [
+      [{x:0.20, y:0.50}, {x:0.80, y:0.42}],
+      [{x:0.48, y:0.22}, {x:0.48, y:0.78}, {x:0.75, y:0.78}, {x:0.75, y:0.65}]
+    ],
+    '九': [
+      [{x:0.42, y:0.20}, {x:0.25, y:0.85}],
+      [{x:0.25, y:0.38}, {x:0.75, y:0.38}, {x:0.60, y:0.82}, {x:0.78, y:0.82}]
+    ],
+    '十': [
+      [{x:0.20, y:0.50}, {x:0.80, y:0.50}],
+      [{x:0.50, y:0.18}, {x:0.50, y:0.85}]
+    ],
+    '百': [
+      [{x:0.22, y:0.22}, {x:0.78, y:0.22}],
+      [{x:0.50, y:0.22}, {x:0.45, y:0.40}],
+      [{x:0.30, y:0.40}, {x:0.30, y:0.85}],
+      [{x:0.30, y:0.40}, {x:0.70, y:0.40}, {x:0.70, y:0.85}],
+      [{x:0.30, y:0.62}, {x:0.70, y:0.62}],
+      [{x:0.30, y:0.85}, {x:0.70, y:0.85}]
+    ],
+    '千': [
+      [{x:0.72, y:0.22}, {x:0.28, y:0.32}],
+      [{x:0.18, y:0.50}, {x:0.82, y:0.50}],
+      [{x:0.50, y:0.30}, {x:0.50, y:0.88}]
     ]
   };
 
@@ -89,24 +160,24 @@
 
     const defaultOptions = {
       canvas: null,
-      showGrid: true,             // 田자형 격자 표시 여부
-      gridColor: '#e2e8f0',       // 격자 색상
+      showGrid: true,             // 田자형 가이드 격자
+      gridColor: '#e2e8f0',
       strokeColor: '#1e293b',     // 사용자 필기 색상
       strokeWidth: 9,             // 사용자 필기 굵기
-      guideChar: '',              // 배경 워터마크 한자
+      guideChar: '',              // 배경 워터마크 글자
       showGuideChar: true,        // 워터마크 표시 여부
       guideColor: 'rgba(0, 0, 0, 0.08)',
       guideFont: '"Noto Serif KR", "Batang", serif',
       
-      // 획순 애니메이션 옵션
-      orderStrokeColor: '#ef4444', // 획순 가이드 메인 색상
-      orderCompletedColor: '#94a3b8', // 이미 지나간 획 색상
+      // 획순 가이드 옵션
+      orderStrokeColor: '#ef4444',
+      orderCompletedColor: '#94a3b8',
       orderStrokeWidth: 10,
-      showStrokeNumbers: true,    // 획 번호 오버레이
-      animSpeed: 1.0,             // 재생 속도
-      onStrokeChange: null,       // 획순 변경 콜백 (current, total)
-      onAnimComplete: null,       // 애니메이션 완료 콜백
-      onChange: null              // 필기 변경 콜백
+      showStrokeNumbers: true,
+      animSpeed: 1.0,
+      onStrokeChange: null,
+      onAnimComplete: null,
+      onChange: null
     };
 
     this.options = Object.assign({}, defaultOptions, options);
@@ -121,6 +192,8 @@
 
     this.ctx = this.canvas.getContext('2d');
     this.dpr = window.devicePixelRatio || 1;
+    this.logicalWidth = 320;
+    this.logicalHeight = 320;
 
     // 사용자 필기 상태
     this.isDrawing = false;
@@ -128,11 +201,11 @@
     this.strokes = [];
     this.redoStack = [];
 
-    // 획순 데이터 및 애니메이션 상태
-    this.strokeOrderData = [];    // 현재 설정된 획 데이터 목록
-    this.currentStrokeIndex = -1; // -1: 전체 미표시, 0..N: 단계별 표시
+    // 획순 애니메이션 상태
+    this.strokeOrderData = [];
+    this.currentStrokeIndex = -1;
     this.isAnimating = false;
-    this.animProgress = 0;        // 현재 획의 0.0 ~ 1.0 진행률
+    this.animProgress = 0;
     this.animRafId = null;
     this._lastTimestamp = 0;
 
@@ -147,6 +220,12 @@
     this._init();
   }
 
+  // Static 속성 & 메서드
+  WritingEngine.PRESETS = PRESET_STROKES;
+  WritingEngine.getAvailablePresets = function () {
+    return Object.keys(PRESET_STROKES);
+  };
+
   WritingEngine.prototype = {
     _init: function () {
       this.canvas.style.touchAction = 'none';
@@ -156,22 +235,25 @@
       this.canvas.addEventListener('pointercancel', this._boundHandlers.pointerCancel);
       window.addEventListener('resize', this._boundHandlers.resize);
 
+      // 1. 크기 계산 및 초기 버퍼 스케일 설정
+      this.resize();
+
+      // 2. 글자 및 획순 데이터 초기화
       if (this.options.guideChar) {
         this.setCharacter(this.options.guideChar);
       }
-
-      this.resize();
     },
 
     resize: function () {
       const rect = this.canvas.getBoundingClientRect();
-      const width = rect.width || this.canvas.offsetWidth || 300;
-      const height = rect.height || this.canvas.offsetHeight || 300;
+      const width = rect.width || this.canvas.offsetWidth || 320;
+      const height = rect.height || this.canvas.offsetHeight || 320;
 
-      this.canvas.width = width * this.dpr;
-      this.canvas.height = height * this.dpr;
-      this.ctx.resetTransform();
-      this.ctx.scale(this.dpr, this.dpr);
+      this.dpr = window.devicePixelRatio || 1;
+      this.canvas.width = Math.round(width * this.dpr);
+      this.canvas.height = Math.round(height * this.dpr);
+
+      this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
       this.logicalWidth = width;
       this.logicalHeight = height;
@@ -179,16 +261,13 @@
       this.redraw();
     },
 
-    // -------------------------------------------------------------
-    // 한자 & 획순 데이터 관리
-    // -------------------------------------------------------------
     setCharacter: function (char, customStrokes) {
       this.options.guideChar = char || '';
       this.stopAnimation();
 
       if (customStrokes && Array.isArray(customStrokes)) {
         this.strokeOrderData = customStrokes;
-      } else if (PRESET_STROKES[char]) {
+      } else if (char && PRESET_STROKES[char]) {
         this.strokeOrderData = PRESET_STROKES[char];
       } else {
         this.strokeOrderData = [];
@@ -211,6 +290,11 @@
       return Object.keys(PRESET_STROKES);
     },
 
+    hasStrokeOrder: function (char) {
+      const target = char || this.options.guideChar;
+      return !!PRESET_STROKES[target] || (this.strokeOrderData && this.strokeOrderData.length > 0);
+    },
+
     getTotalOrderStrokes: function () {
       return this.strokeOrderData.length;
     },
@@ -219,11 +303,8 @@
       return this.currentStrokeIndex + 1;
     },
 
-    // -------------------------------------------------------------
-    // 획순 애니메이션 및 탐색
-    // -------------------------------------------------------------
     playAnimation: function (fromStart = true) {
-      if (this.strokeOrderData.length === 0) return;
+      if (!this.strokeOrderData || this.strokeOrderData.length === 0) return;
 
       this.stopAnimation();
       this.isAnimating = true;
@@ -240,18 +321,15 @@
         const dt = (timestamp - this._lastTimestamp) / 1000;
         this._lastTimestamp = timestamp;
 
-        // 획 그리기 속도 (1초에 1.2획 기본)
         const speed = (this.options.animSpeed || 1.0) * 1.5;
         this.animProgress += dt * speed;
 
         if (this.animProgress >= 1.0) {
           this.animProgress = 0;
           this.currentStrokeIndex++;
-
           this._notifyStrokeChange();
 
           if (this.currentStrokeIndex >= this.strokeOrderData.length) {
-            // 재생 완료
             this.isAnimating = false;
             this.currentStrokeIndex = this.strokeOrderData.length - 1;
             this.animProgress = 1.0;
@@ -290,7 +368,7 @@
 
     stepNextStroke: function () {
       this.pauseAnimation();
-      if (this.strokeOrderData.length === 0) return;
+      if (!this.strokeOrderData || this.strokeOrderData.length === 0) return;
       if (this.currentStrokeIndex < this.strokeOrderData.length - 1) {
         this.currentStrokeIndex++;
         this.animProgress = 1.0;
@@ -301,7 +379,7 @@
 
     stepPrevStroke: function () {
       this.pauseAnimation();
-      if (this.strokeOrderData.length === 0) return;
+      if (!this.strokeOrderData || this.strokeOrderData.length === 0) return;
       if (this.currentStrokeIndex > 0) {
         this.currentStrokeIndex--;
         this.animProgress = 1.0;
@@ -338,9 +416,6 @@
       }
     },
 
-    // -------------------------------------------------------------
-    // 필기 입력 핸들러
-    // -------------------------------------------------------------
     _getCanvasPoint: function (e) {
       const rect = this.canvas.getBoundingClientRect();
       return {
@@ -352,7 +427,9 @@
     _handlePointerDown: function (e) {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       this.isDrawing = true;
-      this.canvas.setPointerCapture(e.pointerId);
+      try {
+        this.canvas.setPointerCapture(e.pointerId);
+      } catch (err) {}
 
       const pt = this._getCanvasPoint(e);
       this.currentStroke = [{
@@ -417,9 +494,6 @@
       this.ctx.restore();
     },
 
-    // -------------------------------------------------------------
-    // 레이어별 렌더링 파이프라인
-    // -------------------------------------------------------------
     _drawGrid: function () {
       if (!this.options.showGrid) return;
 
@@ -431,7 +505,7 @@
       ctx.strokeStyle = this.options.gridColor;
       ctx.lineWidth = 1.5;
 
-      // 외곽 테두리 (실선)
+      // 외곽 사각 테두리
       ctx.strokeRect(1, 1, w - 2, h - 2);
 
       // 田자형 십자 가이드 (점선)
@@ -464,69 +538,67 @@
 
     _drawStrokeOrderLayer: function () {
       if (!this.strokeOrderData || this.strokeOrderData.length === 0) return;
-      if (this.currentStrokeIndex < 0 && !this.options.showStrokeNumbers) return;
 
       const w = this.logicalWidth;
       const h = this.logicalHeight;
       const ctx = this.ctx;
 
-      // 1. 이미 완료된 이전 획들 그리기 (연한 색)
-      for (let i = 0; i <= this.currentStrokeIndex && i < this.strokeOrderData.length; i++) {
-        const rawPoints = this.strokeOrderData[i];
-        if (!rawPoints || rawPoints.length < 2) continue;
+      // 1. 획 선 그리기
+      if (this.currentStrokeIndex >= 0) {
+        for (let i = 0; i <= this.currentStrokeIndex && i < this.strokeOrderData.length; i++) {
+          const rawPoints = this.strokeOrderData[i];
+          if (!rawPoints || rawPoints.length < 2) continue;
 
-        const isCurrent = (i === this.currentStrokeIndex);
-        const strokeColor = isCurrent ? this.options.orderStrokeColor : this.options.orderCompletedColor;
-        const strokeWidth = isCurrent ? this.options.orderStrokeWidth : (this.options.orderStrokeWidth * 0.85);
+          const isCurrent = (i === this.currentStrokeIndex);
+          const strokeColor = isCurrent ? this.options.orderStrokeColor : this.options.orderCompletedColor;
+          const strokeWidth = isCurrent ? this.options.orderStrokeWidth : (this.options.orderStrokeWidth * 0.85);
 
-        const pts = rawPoints.map(p => ({ x: p.x * w, y: p.y * h }));
+          const pts = rawPoints.map(p => ({ x: p.x * w, y: p.y * h }));
 
-        ctx.save();
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = strokeWidth;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
+          ctx.save();
+          ctx.strokeStyle = strokeColor;
+          ctx.lineWidth = strokeWidth;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
 
-        if (isCurrent && this.isAnimating) {
-          // 애니메이션 진행률에 따라 분할 렌더링
-          const totalSegments = pts.length - 1;
-          const currentTargetIndex = this.animProgress * totalSegments;
-          const fullIndex = Math.floor(currentTargetIndex);
-          const fraction = currentTargetIndex - fullIndex;
+          if (isCurrent && this.isAnimating) {
+            const totalSegments = pts.length - 1;
+            const currentTargetIndex = this.animProgress * totalSegments;
+            const fullIndex = Math.floor(currentTargetIndex);
+            const fraction = currentTargetIndex - fullIndex;
 
-          for (let j = 0; j < fullIndex; j++) {
-            ctx.lineTo(pts[j + 1].x, pts[j + 1].y);
-          }
+            for (let j = 0; j < fullIndex; j++) {
+              ctx.lineTo(pts[j + 1].x, pts[j + 1].y);
+            }
 
-          if (fullIndex < totalSegments) {
-            const pStart = pts[fullIndex];
-            const pEnd = pts[fullIndex + 1];
-            const interX = pStart.x + (pEnd.x - pStart.x) * fraction;
-            const interY = pStart.y + (pEnd.y - pStart.y) * fraction;
-            ctx.lineTo(interX, interY);
+            if (fullIndex < totalSegments) {
+              const pStart = pts[fullIndex];
+              const pEnd = pts[fullIndex + 1];
+              const interX = pStart.x + (pEnd.x - pStart.x) * fraction;
+              const interY = pStart.y + (pEnd.y - pStart.y) * fraction;
+              ctx.lineTo(interX, interY);
 
-            // 붓 끝 움직이는 브러시 포인트 강조
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(interX, interY, strokeWidth * 0.7, 0, Math.PI * 2);
-            ctx.fillStyle = '#dc2626';
-            ctx.fill();
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(interX, interY, strokeWidth * 0.7, 0, Math.PI * 2);
+              ctx.fillStyle = '#dc2626';
+              ctx.fill();
+            } else {
+              ctx.stroke();
+            }
           } else {
+            for (let j = 1; j < pts.length; j++) {
+              ctx.lineTo(pts[j].x, pts[j].y);
+            }
             ctx.stroke();
           }
-        } else {
-          // 완료된 상태 전체 그리기
-          for (let j = 1; j < pts.length; j++) {
-            ctx.lineTo(pts[j].x, pts[j].y);
-          }
-          ctx.stroke();
+          ctx.restore();
         }
-        ctx.restore();
       }
 
-      // 2. 획 번호 오버레이 (①, ②, ③...)
+      // 2. 획 번호 배지 오버레이
       if (this.options.showStrokeNumbers) {
         for (let i = 0; i < this.strokeOrderData.length; i++) {
           const rawPoints = this.strokeOrderData[i];
@@ -538,7 +610,6 @@
           const isCurrent = (i === this.currentStrokeIndex);
 
           ctx.save();
-          // 원형 배지
           ctx.beginPath();
           ctx.arc(startX, startY, 11, 0, Math.PI * 2);
           ctx.fillStyle = isCurrent ? '#ef4444' : (isDone ? '#3b82f6' : '#ffffff');
@@ -547,7 +618,6 @@
           ctx.strokeStyle = isCurrent ? '#b91c1c' : (isDone ? '#1d4ed8' : '#64748b');
           ctx.stroke();
 
-          // 숫자 텍스트
           ctx.fillStyle = (isCurrent || isDone) ? '#ffffff' : '#334155';
           ctx.font = 'bold 11px sans-serif';
           ctx.textAlign = 'center';
@@ -594,6 +664,7 @@
     },
 
     redraw: function () {
+      if (!this.logicalWidth || !this.logicalHeight) return;
       this.ctx.clearRect(0, 0, this.logicalWidth, this.logicalHeight);
       this._drawGrid();
       this._drawGuideChar();
@@ -601,9 +672,6 @@
       this._drawUserStrokes();
     },
 
-    // -------------------------------------------------------------
-    // Public 필기 API
-    // -------------------------------------------------------------
     setStrokeColor: function (color) {
       this.options.strokeColor = color;
     },
