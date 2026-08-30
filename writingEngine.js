@@ -1,7 +1,7 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (HanziWriter Vector Core & MakeMeAHanzi Dataset 기반)
+ * (부수 상시 하이라이트 및 기하학적 메타데이터 분석 지원)
  */
 (function (global) {
   'use strict';
@@ -32,12 +32,14 @@
       mode: 'demo', // 'demo' | 'practice'
       width: 320,
       height: 320,
-      strokeColor: '#1e293b',      // 완성된 획 색상
-      outlineColor: '#e2e8f0',     // 워터마크 음영 색상
-      highlightColor: '#ef4444',   // 시연 애니메이션 잉크 색상
-      drawingColor: '#2563eb',     // 연습 모드 사용자 필기선
+      strokeColor: '#1e293b',      // 일반 몸체 획 색상 (흑회색)
+      radicalColor: '#2563eb',     // 부수(Radical) 상시 하이라이트 색상 (파란색)
+      outlineColor: '#e2e8f0',     // 워터마크 배경 서체 색상
+      highlightColor: '#ef4444',   // 시연 애니메이션 진행 잉크 색상
+      drawingColor: '#2563eb',     // 연습 모드 필기 선 색상
       drawingWidth: 20,
       animSpeed: 1.0,
+      onCharLoaded: null,          // (metaData) => { totalStrokes, radCount, remainCount, radPosition, ... }
       onStrokeChange: null,
       onStrokeSuccess: null,
       onStrokeError: null,
@@ -57,7 +59,14 @@
     this.char = this.options.char || '永';
     this.mode = this.options.mode || 'demo';
     this.writer = null;
-    this.totalStrokes = 0;
+    this.meta = {
+      char: this.char,
+      totalStrokes: 0,
+      radCount: 0,
+      remainCount: 0,
+      radStrokes: [],
+      radPosition: '판별 중'
+    };
     this.currentStroke = 0;
     this.isReady = false;
 
@@ -76,7 +85,7 @@
       this.container.style.boxSizing = 'border-box';
       this.container.style.backgroundColor = '#ffffff';
 
-      // 田자형 격자 SVG 배경 생성
+      // 田자형 가이드 격자 SVG 배경 생성
       const gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       gridSvg.setAttribute('width', '100%');
       gridSvg.setAttribute('height', '100%');
@@ -91,7 +100,7 @@
       `;
       this.container.appendChild(gridSvg);
 
-      // HanziWriter 대상 래퍼
+      // HanziWriter 타겟 래퍼
       this.targetEl = document.createElement('div');
       this.targetEl.style.width = '100%';
       this.targetEl.style.height = '100%';
@@ -105,6 +114,7 @@
         height: this.options.height,
         padding: 15,
         strokeColor: this.options.strokeColor,
+        radicalColor: this.options.radicalColor, // ★ 부수 상시 하이라이트 적용
         outlineColor: this.options.outlineColor,
         highlightColor: this.options.highlightColor,
         drawingColor: this.options.drawingColor,
@@ -115,16 +125,78 @@
         showCharacter: false,
         highlightOnComplete: false,
         onLoadCharDataSuccess: (data) => {
-          this.totalStrokes = data.strokes.length;
-          this.currentStroke = 0;
+          this._parseCharMeta(data);
           this.isReady = true;
           this._applyMode();
           this._notifyStrokeChange();
+
+          if (typeof this.options.onCharLoaded === 'function') {
+            this.options.onCharLoaded(this.meta);
+          }
         },
         onLoadCharDataError: (err) => {
           console.error('[WritingEngine] 한자 데이터 로드 실패:', err);
         }
       });
+    },
+
+    // 부수 위치 및 획수 기하학적 메타데이터 계산
+    _parseCharMeta: function (data) {
+      const totalStrokes = data.strokes.length;
+      const radStrokes = Array.isArray(data.radStrokes) ? data.radStrokes : [];
+      const radCount = radStrokes.length;
+      const remainCount = Math.max(0, totalStrokes - radCount);
+
+      // 부수 위치 자동 분석
+      let radPosition = '단독/전체';
+      if (radCount > 0 && radCount < totalStrokes && data.medians) {
+        let radMinX = Infinity, radMaxX = -Infinity;
+        let radMinY = Infinity, radMaxY = -Infinity;
+        let radAvgX = 0, ptCount = 0;
+
+        radStrokes.forEach((sIdx) => {
+          const med = data.medians[sIdx];
+          if (med) {
+            med.forEach((pt) => {
+              radMinX = Math.min(radMinX, pt[0]);
+              radMaxX = Math.max(radMaxX, pt[0]);
+              radMinY = Math.min(radMinY, pt[1]);
+              radMaxY = Math.max(radMaxY, pt[1]);
+              radAvgX += pt[0];
+              ptCount++;
+            });
+          }
+        });
+
+        if (ptCount > 0) {
+          radAvgX /= ptCount;
+          const radWidth = radMaxX - radMinX;
+          const radHeight = radMaxY - radMinY;
+
+          if (radMaxX < 560 && radAvgX < 450 && radHeight > 350) {
+            radPosition = '변 (좌측)';
+          } else if (radMinX > 460 && radAvgX > 560 && radHeight > 350) {
+            radPosition = '방 (우측)';
+          } else if (radMinY > 500 && radWidth > 380) { // 폰트 좌표계 Y-Up 기준 상단
+            radPosition = '머리 (상단)';
+          } else if (radMaxY < 500 && radWidth > 380) {
+            radPosition = '발 (하단)';
+          } else if (radWidth > 600 || radHeight > 600) {
+            radPosition = '받침 / 몸 (외곽)';
+          } else {
+            radPosition = '조합 / 내부';
+          }
+        }
+      }
+
+      this.meta = {
+        char: this.char,
+        totalStrokes: totalStrokes,
+        radCount: radCount,
+        remainCount: remainCount,
+        radStrokes: radStrokes,
+        radPosition: radPosition
+      };
     },
 
     _applyMode: function () {
@@ -149,10 +221,12 @@
       if (this.writer) {
         this.isReady = false;
         this.writer.setCharacter(char).then(() => {
-          this.totalStrokes = this.writer._charData.strokes.length;
-          this.currentStroke = 0;
+          this._parseCharMeta(this.writer._charData);
           this.isReady = true;
           this._applyMode();
+          if (typeof this.options.onCharLoaded === 'function') {
+            this.options.onCharLoaded(this.meta);
+          }
         });
       }
     },
@@ -161,6 +235,10 @@
       if (this.mode === mode) return;
       this.mode = mode; // 'demo' | 'practice'
       this._applyMode();
+    },
+
+    getMeta: function () {
+      return Object.assign({}, this.meta);
     },
 
     // -------------------------------------------------------------
@@ -172,7 +250,7 @@
       this.writer.hideCharacter();
       this.writer.animateCharacter({
         onComplete: () => {
-          this.currentStroke = this.totalStrokes;
+          this.currentStroke = this.meta.totalStrokes;
           this._notifyStrokeChange();
           if (typeof this.options.onComplete === 'function') {
             this.options.onComplete();
@@ -190,7 +268,7 @@
       if (!this.writer || !this.isReady) return;
 
       if (this.mode === 'demo') {
-        if (this.currentStroke < this.totalStrokes) {
+        if (this.currentStroke < this.meta.totalStrokes) {
           this.writer.animateStroke(this.currentStroke, {
             onComplete: () => {
               this.currentStroke++;
@@ -232,7 +310,7 @@
           this.currentStroke = data.strokeNum + 1;
           this._notifyStrokeChange();
           if (typeof this.options.onStrokeSuccess === 'function') {
-            this.options.onStrokeSuccess(this.currentStroke, this.totalStrokes);
+            this.options.onStrokeSuccess(this.currentStroke, this.meta.totalStrokes);
           }
         },
         onMistake: (data) => {
@@ -241,7 +319,7 @@
           }
         },
         onComplete: () => {
-          this.currentStroke = this.totalStrokes;
+          this.currentStroke = this.meta.totalStrokes;
           this._notifyStrokeChange();
           if (typeof this.options.onComplete === 'function') {
             this.options.onComplete();
@@ -252,7 +330,7 @@
 
     _notifyStrokeChange: function () {
       if (typeof this.options.onStrokeChange === 'function') {
-        this.options.onStrokeChange(this.currentStroke, this.totalStrokes);
+        this.options.onStrokeChange(this.currentStroke, this.meta.totalStrokes);
       }
     }
   };

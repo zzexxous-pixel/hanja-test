@@ -8,6 +8,8 @@
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
+      --radical: #2563eb;
+      --body-stroke: #1e293b;
       --accent: #ef4444;
       --accent-hover: #dc2626;
       --success: #10b981;
@@ -72,8 +74,76 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
+
+    /* 1. 한자 스펙 배지 바 (Spec Badge Bar) */
+    .spec-bar {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 8px 10px;
+      border-radius: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .spec-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .spec-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 7px;
+      border-radius: 5px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .spec-chip.radical {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+
+    .spec-chip.position {
+      background: #fdf2f8;
+      color: #be185d;
+      border-color: #fbcfe8;
+    }
+
+    /* 색상 범례 */
+    .legend-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .legend-dot.rad { background: var(--radical); }
+    .legend-dot.body { background: var(--body-stroke); }
 
     /* 모드 전환 탭 */
     .tab-bar {
@@ -103,7 +173,7 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    /* 田자형 뷰포트 컨테이너 */
+    /* 田자형 뷰포트 */
     #writingContainer {
       width: 320px;
       height: 320px;
@@ -221,37 +291,51 @@
     </div>
 
     <div class="card">
-      <!-- 1. 모드 전환 탭 -->
+      <!-- 1. 한자 스펙 배지 바 (총 획수 / 부수 획수 / 잔여 획수 / 위치 / 색상 범례) -->
+      <div class="spec-bar">
+        <div class="spec-group">
+          <span class="spec-chip" id="chipTotalStrokes">총 5획</span>
+          <span class="spec-chip radical" id="chipRadicalStrokes">부수 3획 (잔여 2획)</span>
+          <span class="spec-chip position" id="chipRadicalPos">위치: 변 (좌측)</span>
+        </div>
+        <div class="legend-group">
+          <div class="legend-item"><span class="legend-dot rad"></span>부수</div>
+          <div class="legend-item"><span class="legend-dot body"></span>몸체</div>
+        </div>
+      </div>
+
+      <!-- 2. 모드 전환 탭 -->
       <div class="tab-bar">
         <button class="tab-btn active" id="tabDemo" data-mode="demo">획순 시연 모드</button>
         <button class="tab-btn" id="tabPractice" data-mode="practice">직접 쓰기 연습</button>
       </div>
 
-      <!-- 2. 田자형 벡터 캔버스 뷰포트 -->
+      <!-- 3. 田자형 벡터 뷰포트 -->
       <div id="writingContainer"></div>
 
-      <!-- 3. 한자 선택 및 직접 입력 -->
+      <!-- 4. 한자 선택 및 직접 입력 -->
       <div class="control-row">
         <div class="control-group">
           <label for="hanjaSelect">추천 한자</label>
           <select id="hanjaSelect">
-            <option value="永" selected>永 (길 영 - 5획)</option>
-            <option value="水">水 (물 수 - 4획)</option>
-            <option value="木">木 (나무 목 - 4획)</option>
-            <option value="火">火 (불 화 - 4획)</option>
-            <option value="金">金 (쇠 금 - 8획)</option>
-            <option value="龍">龍 (용 룡 - 16획)</option>
-            <option value="學">學 (배울 학 - 16획)</option>
-            <option value="福">福 (복 복 - 14획)</option>
+            <option value="永" selected>永 (길 영 - 水부 5획)</option>
+            <option value="水">水 (물 수 - 水부 4획)</option>
+            <option value="木">木 (나무 목 - 木부 4획)</option>
+            <option value="休">休 (쉴 휴 - 亻부 6획)</option>
+            <option value="語">語 (말씀 어 - 言부 14획)</option>
+            <option value="花">花 (꽃 화 - 艹부 8획)</option>
+            <option value="道">道 (길 도 - 辶부 13획)</option>
+            <option value="國">國 (나라 국 - 囗부 11획)</option>
+            <option value="學">學 (배울 학 - 子부 16획)</option>
           </select>
         </div>
         <div class="control-group">
-          <label for="customCharInput">모든 한자 입력 (9,000자 지원)</label>
+          <label for="customCharInput">모든 한자 입력 (9,000자)</label>
           <input type="text" id="customCharInput" maxlength="1" placeholder="한자 1글자">
         </div>
       </div>
 
-      <!-- 4. 조작 버튼 패널 -->
+      <!-- 5. 조작 버튼 패널 -->
       <div class="action-panel" id="demoButtons">
         <button id="btnPlay" class="accent">▶ 재생</button>
         <button id="btnPause">⏸ 정지</button>
@@ -270,7 +354,7 @@
     </div>
   </div>
 
-  <script src="../writingEngine.js"></script>
+  <script src="../writingEngine.js?v=4.0"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const container = document.getElementById('writingContainer');
@@ -278,6 +362,11 @@
       const customCharInput = document.getElementById('customCharInput');
       const strokeBadge = document.getElementById('strokeBadge');
       const statusText = document.getElementById('statusText');
+
+      // 스펙 칩 엘리먼트
+      const chipTotalStrokes = document.getElementById('chipTotalStrokes');
+      const chipRadicalStrokes = document.getElementById('chipRadicalStrokes');
+      const chipRadicalPos = document.getElementById('chipRadicalPos');
 
       const tabDemo = document.getElementById('tabDemo');
       const tabPractice = document.getElementById('tabPractice');
@@ -295,6 +384,12 @@
         container: container,
         char: hanjaSelect.value,
         mode: 'demo',
+        onCharLoaded: (meta) => {
+          // 스펙 배지 바 실시간 업데이트
+          chipTotalStrokes.textContent = `총 ${meta.totalStrokes}획`;
+          chipRadicalStrokes.textContent = `부수 ${meta.radCount}획 (잔여 ${meta.remainCount}획)`;
+          chipRadicalPos.textContent = `위치: ${meta.radPosition}`;
+        },
         onStrokeChange: (current, total) => {
           strokeBadge.textContent = `획순: ${current} / ${total}`;
         },
