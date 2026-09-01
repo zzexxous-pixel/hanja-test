@@ -1,7 +1,7 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (부수 상시 하이라이트, 기하학적 메타데이터 분석 및 동적 리사이징 지원)
+ * (부수 상시 하이라이트, 음영 부수 구분, 기하학적 메타데이터 분석 및 동적 리사이징 지원)
  */
 (function (global) {
   'use strict';
@@ -32,8 +32,9 @@
       width: 320,
       height: 320,
       strokeColor: '#1e293b',
-      radicalColor: '#2563eb',
-      outlineColor: '#e2e8f0',
+      radicalColor: '#2563eb',     // 부수 본체 강조 색상 (파란색)
+      outlineColor: '#e2e8f0',     // 일반 몸체 음영 색상
+      outlineRadicalColor: '#93c5fd', // ★ 음영 상태 부수 구분 색상 (흐릿한 파란색)
       highlightColor: '#ef4444',
       drawingColor: '#2563eb',
       drawingWidth: 20,
@@ -62,6 +63,7 @@
     this.meta = {
       char: this.char,
       totalStrokes: 0,
+      radChar: '',
       radCount: 0,
       remainCount: 0,
       radStrokes: [],
@@ -85,18 +87,22 @@
       this.container.style.boxSizing = 'border-box';
       this.container.style.backgroundColor = '#ffffff';
 
+      // 또렷한 외곽선과 점선을 위해 crispEdges 렌더링 적용
       const gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       gridSvg.setAttribute('width', '100%');
       gridSvg.setAttribute('height', '100%');
       gridSvg.setAttribute('viewBox', `0 0 ${this.size} ${this.size}`);
+      gridSvg.setAttribute('shape-rendering', 'crispEdges');
       gridSvg.style.position = 'absolute';
       gridSvg.style.top = '0';
       gridSvg.style.left = '0';
       gridSvg.style.pointerEvents = 'none';
+
+      const half = Math.round(this.size / 2);
       gridSvg.innerHTML = `
-        <rect x="1" y="1" width="${this.size - 2}" height="${this.size - 2}" fill="none" stroke="#94a3b8" stroke-width="2"/>
-        <line x1="${this.size / 2}" y1="0" x2="${this.size / 2}" y2="${this.size}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 6"/>
-        <line x1="0" y1="${this.size / 2}" x2="${this.size}" y2="${this.size / 2}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 6"/>
+        <rect x="0.5" y="0.5" width="${this.size - 1}" height="${this.size - 1}" fill="none" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="${half}" y1="0" x2="${half}" y2="${this.size}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="6 6"/>
+        <line x1="0" y1="${half}" x2="${this.size}" y2="${half}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="6 6"/>
       `;
       this.container.appendChild(gridSvg);
 
@@ -128,6 +134,7 @@
           this._parseCharMeta(data);
           this.isReady = true;
           this._applyMode();
+          this._highlightOutlineRadicals();
           this._notifyStrokeChange();
 
           if (typeof this.options.onCharLoaded === 'function') {
@@ -145,6 +152,7 @@
       const radStrokes = Array.isArray(data.radStrokes) ? data.radStrokes : [];
       const radCount = radStrokes.length;
       const remainCount = Math.max(0, totalStrokes - radCount);
+      const radChar = data.radChar || data.radical || '';
 
       let radPosition = '단독/전체';
       if (radCount > 0 && radCount < totalStrokes && data.medians) {
@@ -190,11 +198,34 @@
       this.meta = {
         char: this.char,
         totalStrokes: totalStrokes,
+        radChar: radChar,
         radCount: radCount,
         remainCount: remainCount,
         radStrokes: radStrokes,
         radPosition: radPosition
       };
+    },
+
+    // ★ 음영 상태에서도 부수를 연한 파란색으로 칠해주는 하이라이터
+    _highlightOutlineRadicals: function () {
+      if (!this.targetEl || !this.meta.radStrokes || this.meta.radStrokes.length === 0) return;
+      const svg = this.targetEl.querySelector('svg');
+      if (!svg) return;
+
+      const paths = svg.querySelectorAll('path');
+      const total = this.meta.totalStrokes;
+      const radColor = this.options.outlineRadicalColor || '#93c5fd';
+
+      if (paths.length >= total) {
+        this.meta.radStrokes.forEach((strokeIdx) => {
+          if (paths[strokeIdx]) {
+            paths[strokeIdx].style.fill = radColor;
+            paths[strokeIdx].style.stroke = radColor;
+            paths[strokeIdx].setAttribute('fill', radColor);
+            paths[strokeIdx].setAttribute('stroke', radColor);
+          }
+        });
+      }
     },
 
     _applyMode: function () {
@@ -210,6 +241,7 @@
         this.currentStroke = 0;
         this.startQuiz();
       }
+      this._highlightOutlineRadicals();
       this._notifyStrokeChange();
     },
 
@@ -229,6 +261,7 @@
           this._parseCharMeta(this.writer._charData);
           this.isReady = true;
           this._applyMode();
+          this._highlightOutlineRadicals();
           if (typeof this.options.onCharLoaded === 'function') {
             this.options.onCharLoaded(this.meta);
           }

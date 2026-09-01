@@ -475,11 +475,12 @@ function closeModal() {
 
 function computeOptimalCanvasSize() {
     const wrapper = document.getElementById('writing-viewport-wrapper');
-    if (!wrapper) return 280;
-    const availWidth = wrapper.clientWidth - 70; // 좌우 네비 버튼 공간 35px씩 차감
+    if (!wrapper) return 320;
+    const availWidth = wrapper.clientWidth - 76; // 좌우 네비 버튼 여백 확보
     const availHeight = wrapper.clientHeight - 8;
     const rawSize = Math.min(availWidth, availHeight);
-    return Math.max(180, Math.min(rawSize, 360));
+    // 캔버스 최대 크기를 540px까지 확장하여 대형 뷰포트 지원
+    return Math.max(180, Math.min(rawSize, 540));
 }
 
 function initModalWritingEngine(char) {
@@ -549,7 +550,13 @@ function updateModalSpecUI(meta) {
     const badgeEl = document.getElementById('modal-stroke-badge');
 
     if (totalEl) totalEl.innerText = `총 ${meta.totalStrokes}획`;
-    if (radEl) radEl.innerText = `부수 ${meta.radCount}획 (잔여 ${meta.remainCount}획)`;
+    
+    // ★ 부수 한자명이 있으면 "부수 [글자] N획", 없으면 "부수 N획"으로 표시
+    if (radEl) {
+        const radCharText = meta.radChar ? `${meta.radChar} ` : '';
+        radEl.innerText = `부수 ${radCharText}${meta.radCount}획 (잔여 ${meta.remainCount}획)`;
+    }
+    
     if (posEl) posEl.innerText = `위치: ${meta.radPosition}`;
     if (badgeEl) badgeEl.innerText = `획순: 0 / ${meta.totalStrokes}`;
     if (statusEl) {

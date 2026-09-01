@@ -386,9 +386,10 @@ input[type="range"]::-webkit-slider-thumb:active {
    ========================================================================== */
 
 .writing-modal-card {
-    max-width: min(94vw, 500px);
-    max-height: min(94vh, 640px);
-    aspect-ratio: 1 / 1.15;
+    width: 100%;
+    max-width: min(96vw, 760px); /* 한자표 가로폭 수준으로 대폭 확장 */
+    height: min(94vh, 820px);    /* 화면 높이를 최대한 채우는 대형 뷰포트 */
+    max-height: 94vh;
     overflow: hidden !important;
     touch-action: none !important;
     overscroll-behavior: contain !important;
@@ -396,8 +397,7 @@ input[type="range"]::-webkit-slider-thumb:active {
 
 @media (max-width: 480px) {
     .writing-modal-card {
-        aspect-ratio: auto;
-        height: min(96vh, 580px);
+        height: min(96vh, 620px);
     }
 }
 
