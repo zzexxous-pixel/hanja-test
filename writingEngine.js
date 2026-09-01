@@ -1,7 +1,7 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (부수 상시 하이라이트, 음영 부수 구분, 기하학적 메타데이터 분석 및 동적 리사이징 지원)
+ * (CSS 선언적 부수 음영 하이라이트, 기하학적 메타데이터 분석 및 동적 리사이징 지원)
  */
 (function (global) {
   'use strict';
@@ -32,9 +32,9 @@
       width: 320,
       height: 320,
       strokeColor: '#1e293b',
-      radicalColor: '#2563eb',     // 부수 본체 강조 색상 (파란색)
-      outlineColor: '#e2e8f0',     // 일반 몸체 음영 색상
-      outlineRadicalColor: '#93c5fd', // ★ 음영 상태 부수 구분 색상 (흐릿한 파란색)
+      radicalColor: '#2563eb',        // 부수 본체 강조 색상 (파란색)
+      outlineColor: '#e2e8f0',        // 일반 몸체 음영 색상 (회색)
+      outlineRadicalColor: '#93c5fd', // ★ 음영 상태 부수 구분 색상 (흐린 파란색)
       highlightColor: '#ef4444',
       drawingColor: '#2563eb',
       drawingWidth: 20,
@@ -87,7 +87,6 @@
       this.container.style.boxSizing = 'border-box';
       this.container.style.backgroundColor = '#ffffff';
 
-      // 또렷한 외곽선과 점선을 위해 crispEdges 렌더링 적용
       const gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       gridSvg.setAttribute('width', '100%');
       gridSvg.setAttribute('height', '100%');
@@ -134,7 +133,7 @@
           this._parseCharMeta(data);
           this.isReady = true;
           this._applyMode();
-          this._highlightOutlineRadicals();
+          this._applyOutlineRadicalStyle();
           this._notifyStrokeChange();
 
           if (typeof this.options.onCharLoaded === 'function') {
@@ -206,26 +205,32 @@
       };
     },
 
-    // ★ 음영 상태에서도 부수를 연한 파란색으로 칠해주는 하이라이터
-    _highlightOutlineRadicals: function () {
-      if (!this.targetEl || !this.meta.radStrokes || this.meta.radStrokes.length === 0) return;
-      const svg = this.targetEl.querySelector('svg');
-      if (!svg) return;
-
-      const paths = svg.querySelectorAll('path');
-      const total = this.meta.totalStrokes;
-      const radColor = this.options.outlineRadicalColor || '#93c5fd';
-
-      if (paths.length >= total) {
-        this.meta.radStrokes.forEach((strokeIdx) => {
-          if (paths[strokeIdx]) {
-            paths[strokeIdx].style.fill = radColor;
-            paths[strokeIdx].style.stroke = radColor;
-            paths[strokeIdx].setAttribute('fill', radColor);
-            paths[strokeIdx].setAttribute('stroke', radColor);
-          }
-        });
+    // ★ 타이머 없는 선언적 CSS 주입: Outline SVG의 부수 획만 흐린 파란색 고정
+    _applyOutlineRadicalStyle: function () {
+      let styleEl = this.container.querySelector('style[data-rad-style]');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.setAttribute('data-rad-style', 'true');
+        this.container.appendChild(styleEl);
       }
+
+      if (!this.meta.radStrokes || this.meta.radStrokes.length === 0) {
+        styleEl.textContent = '';
+        return;
+      }
+
+      const radColor = this.options.outlineRadicalColor || '#93c5fd';
+      const containerId = this.container.id ? `#${this.container.id}` : '.writing-canvas-container';
+      const selectors = this.meta.radStrokes
+        .map(idx => `${containerId} div > svg g:first-of-type > path:nth-of-type(${idx + 1})`)
+        .join(',\n');
+
+      styleEl.textContent = `
+        ${selectors} {
+          fill: ${radColor} !important;
+          stroke: ${radColor} !important;
+        }
+      `;
     },
 
     _applyMode: function () {
@@ -241,7 +246,7 @@
         this.currentStroke = 0;
         this.startQuiz();
       }
-      this._highlightOutlineRadicals();
+      this._applyOutlineRadicalStyle();
       this._notifyStrokeChange();
     },
 
@@ -261,7 +266,7 @@
           this._parseCharMeta(this.writer._charData);
           this.isReady = true;
           this._applyMode();
-          this._highlightOutlineRadicals();
+          this._applyOutlineRadicalStyle();
           if (typeof this.options.onCharLoaded === 'function') {
             this.options.onCharLoaded(this.meta);
           }

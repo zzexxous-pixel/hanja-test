@@ -550,13 +550,7 @@ function updateModalSpecUI(meta) {
     const badgeEl = document.getElementById('modal-stroke-badge');
 
     if (totalEl) totalEl.innerText = `총 ${meta.totalStrokes}획`;
-    
-    // ★ 부수 한자명이 있으면 "부수 [글자] N획", 없으면 "부수 N획"으로 표시
-    if (radEl) {
-        const radCharText = meta.radChar ? `${meta.radChar} ` : '';
-        radEl.innerText = `부수 ${radCharText}${meta.radCount}획 (잔여 ${meta.remainCount}획)`;
-    }
-    
+    if (radEl) radEl.innerText = `부수 ${meta.radCount}획 (잔여 ${meta.remainCount}획)`;
     if (posEl) posEl.innerText = `위치: ${meta.radPosition}`;
     if (badgeEl) badgeEl.innerText = `획순: 0 / ${meta.totalStrokes}`;
     if (statusEl) {
