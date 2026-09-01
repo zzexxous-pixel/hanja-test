@@ -1,7 +1,7 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (전용 클래스 기반 부수 음영 하이라이트, 붓글씨 두께 필기선 및 동적 리사이징 지원)
+ * (MutationObserver 기반 부수 음영 즉시 하이라이트, 인-플레이스 리사이징 및 붓글씨 굵기 최적화)
  */
 (function (global) {
   'use strict';
@@ -34,7 +34,7 @@
       strokeColor: '#1e293b',
       radicalColor: '#2563eb',        // 본체 부수 (선명한 파랑)
       outlineColor: '#e2e8f0',        // 일반 몸체 음영 (연회색)
-      outlineRadicalColor: '#93c5fd', // ★ 음영 부수 구분 (은은하고 부드러운 소프트 블루)
+      outlineRadicalColor: '#dbeafe', // ★ 음영 부수 구분 (매우 은은하고 부드러운 소프트 파스텔 블루)
       highlightColor: '#ef4444',
       drawingColor: '#334155',        // ★ 직접 쓰기 필기선 (Dark Gray)
       animSpeed: 1.0,
@@ -59,6 +59,7 @@
     this.mode = this.options.mode || 'demo';
     this.size = this.options.width || 320;
     this.writer = null;
+    this._observer = null;
     this.meta = {
       char: this.char,
       totalStrokes: 0,
@@ -86,22 +87,21 @@
       this.container.style.boxSizing = 'border-box';
       this.container.style.backgroundColor = '#ffffff';
 
-      // 1. 또렷한 田자형 격자 생성
+      // 1. 화면 리사이즈 시에도 찌그러짐 없는 1000x1000 벡터 격자 SVG
       const gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       gridSvg.setAttribute('width', '100%');
       gridSvg.setAttribute('height', '100%');
-      gridSvg.setAttribute('viewBox', `0 0 ${this.size} ${this.size}`);
+      gridSvg.setAttribute('viewBox', '0 0 1000 1000');
       gridSvg.setAttribute('shape-rendering', 'crispEdges');
       gridSvg.style.position = 'absolute';
       gridSvg.style.top = '0';
       gridSvg.style.left = '0';
       gridSvg.style.pointerEvents = 'none';
 
-      const half = Math.round(this.size / 2);
       gridSvg.innerHTML = `
-        <rect x="0.5" y="0.5" width="${this.size - 1}" height="${this.size - 1}" fill="none" stroke="#64748b" stroke-width="1.5"/>
-        <line x1="${half}" y1="0" x2="${half}" y2="${this.size}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="6 6"/>
-        <line x1="0" y1="${half}" x2="${this.size}" y2="${half}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="6 6"/>
+        <rect x="1" y="1" width="998" height="998" fill="none" stroke="#64748b" stroke-width="2"/>
+        <line x1="500" y1="0" x2="500" y2="1000" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="10 10"/>
+        <line x1="0" y1="500" x2="1000" y2="500" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="10 10"/>
       `;
       this.container.appendChild(gridSvg);
 
@@ -119,14 +119,21 @@
       this.targetEl.style.width = '100%';
       this.targetEl.style.height = '100%';
       this.container.appendChild(this.targetEl);
+
+      // 3. 비동기 렌더링 즉시 감지를 위한 MutationObserver 바인딩
+      if (this._observer) this._observer.disconnect();
+      this._observer = new MutationObserver(() => {
+        this._tagOutlineRadicals();
+      });
+      this._observer.observe(this.targetEl, { childList: true, subtree: true });
     },
 
     _initWriter: function () {
       if (!global.HanziWriter) return;
       this.targetEl.innerHTML = '';
       
-      // ★ 붓글씨 느낌의 도톰하고 깔끔한 펜 굵기 (약 18px ~ 22px)
-      const penWidth = Math.max(18, Math.round(this.size * 0.05));
+      // ★ 붓글씨 느낌의 도톰하고 매끄러운 펜 굵기 (16px ~ 24px)
+      const penWidth = Math.max(16, Math.round(this.size * 0.055));
 
       this.writer = global.HanziWriter.create(this.targetEl, this.char, {
         width: this.size,
@@ -147,6 +154,7 @@
           this._parseCharMeta(data);
           this.isReady = true;
           this._applyMode();
+          this._tagOutlineRadicals();
           this._notifyStrokeChange();
 
           if (typeof this.options.onCharLoaded === 'function') {
@@ -218,15 +226,15 @@
       };
     },
 
-    // ★ 배경 음영의 부수 path에만 전용 클래스 태깅 (필기선 간섭 100% 차단)
+    // ★ 배경 음영의 부수 path에만 전용 클래스 태깅 (0ms 실시간 동기화)
     _tagOutlineRadicals: function () {
-      if (!this.targetEl) return;
+      if (!this.targetEl || !this.meta.radStrokes || this.meta.radStrokes.length === 0) return;
       const svg = this.targetEl.querySelector('svg');
       if (!svg) return;
       const outlineGroup = svg.querySelector('g');
       if (!outlineGroup) return;
       const paths = outlineGroup.querySelectorAll('path');
-      if (!paths || paths.length === 0) return;
+      if (!paths || paths.length < this.meta.totalStrokes) return;
 
       paths.forEach((p, idx) => {
         if (this.meta.radStrokes && this.meta.radStrokes.includes(idx)) {
@@ -254,11 +262,27 @@
       this._notifyStrokeChange();
     },
 
+    // ★ 쓰기 진행도를 초기화하지 않는 무손실 인-플레이스 리사이징
     resize: function (newSize) {
       if (!newSize || Math.abs(this.size - newSize) < 4) return;
       this.size = Math.round(newSize);
-      this._initDOM();
-      this._initWriter();
+      
+      this.container.style.width = `${this.size}px`;
+      this.container.style.height = `${this.size}px`;
+
+      if (this.writer && typeof this.writer.updateDimensions === 'function') {
+        const penWidth = Math.max(16, Math.round(this.size * 0.055));
+        this.writer.updateDimensions({
+          width: this.size,
+          height: this.size,
+          padding: Math.max(10, Math.round(this.size * 0.05)),
+          drawingWidth: penWidth
+        });
+        this._tagOutlineRadicals();
+      } else {
+        this._initDOM();
+        this._initWriter();
+      }
     },
 
     setCharacter: function (char) {
@@ -270,6 +294,7 @@
           this._parseCharMeta(this.writer._charData);
           this.isReady = true;
           this._applyMode();
+          this._tagOutlineRadicals();
           if (typeof this.options.onCharLoaded === 'function') {
             this.options.onCharLoaded(this.meta);
           }
