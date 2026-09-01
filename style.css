@@ -380,3 +380,149 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-webkit-slider-thumb:active {
     transform: scale(1.2);
 }
+
+/* ==========================================================================
+   쓰기 모달 전용 1:1 정사각형 반응형 컴포넌트 시스템
+   ========================================================================== */
+
+.writing-modal-card {
+    max-width: min(94vw, 500px);
+    max-height: min(94vh, 640px);
+    aspect-ratio: 1 / 1.15;
+    overflow: hidden !important;
+    touch-action: none !important;
+    overscroll-behavior: contain !important;
+}
+
+@media (max-width: 480px) {
+    .writing-modal-card {
+        aspect-ratio: auto;
+        height: min(96vh, 580px);
+    }
+}
+
+/* 스펙 칩 뱃지 */
+.spec-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+.spec-chip.chip-radical {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+.spec-chip.chip-position {
+    background: #fdf2f8;
+    color: #be185d;
+    border-color: #fbcfe8;
+}
+
+/* 모드 전환 탭 버튼 */
+.writing-tab-btn {
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.writing-tab-btn.active {
+    background: #ffffff;
+    color: #2563eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* 플로팅 좌우 네비게이션 버튼 */
+.btn-modal-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+.btn-modal-nav:hover:not(:disabled) {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+    transform: translateY(-50%) scale(1.08);
+}
+.btn-modal-nav:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.95);
+}
+.btn-modal-nav:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* 캔버스 컨테이너 터치 제스처 잠금 */
+.writing-canvas-container {
+    touch-action: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+/* 조작 액션 버튼 */
+.btn-writing-action {
+    padding: 7px 4px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+.btn-writing-action:active {
+    transform: scale(0.96);
+}
+.btn-writing-action.btn-neutral {
+    background: #f8fafc;
+    color: #334155;
+}
+.btn-writing-action.btn-neutral:hover {
+    background: #f1f5f9;
+}
+.btn-writing-action.btn-accent-red {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+}
+.btn-writing-action.btn-accent-red:hover {
+    background: #dc2626;
+}
+.btn-writing-action.btn-accent-blue {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+.btn-writing-action.btn-accent-blue:hover {
+    background: #1d4ed8;
+}

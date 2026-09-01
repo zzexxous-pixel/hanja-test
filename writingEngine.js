@@ -1,12 +1,11 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (부수 상시 하이라이트 및 기하학적 메타데이터 분석 지원)
+ * (부수 상시 하이라이트, 기하학적 메타데이터 분석 및 동적 리사이징 지원)
  */
 (function (global) {
   'use strict';
 
-  // HanziWriter CDN 자동 로더
   function loadHanziWriter(callback) {
     if (typeof global.HanziWriter !== 'undefined') {
       callback();
@@ -32,14 +31,14 @@
       mode: 'demo', // 'demo' | 'practice'
       width: 320,
       height: 320,
-      strokeColor: '#1e293b',      // 일반 몸체 획 색상 (흑회색)
-      radicalColor: '#2563eb',     // 부수(Radical) 상시 하이라이트 색상 (파란색)
-      outlineColor: '#e2e8f0',     // 워터마크 배경 서체 색상
-      highlightColor: '#ef4444',   // 시연 애니메이션 진행 잉크 색상
-      drawingColor: '#2563eb',     // 연습 모드 필기 선 색상
+      strokeColor: '#1e293b',
+      radicalColor: '#2563eb',
+      outlineColor: '#e2e8f0',
+      highlightColor: '#ef4444',
+      drawingColor: '#2563eb',
       drawingWidth: 20,
       animSpeed: 1.0,
-      onCharLoaded: null,          // (metaData) => { totalStrokes, radCount, remainCount, radPosition, ... }
+      onCharLoaded: null,
       onStrokeChange: null,
       onStrokeSuccess: null,
       onStrokeError: null,
@@ -58,6 +57,7 @@
 
     this.char = this.options.char || '永';
     this.mode = this.options.mode || 'demo';
+    this.size = this.options.width || 320;
     this.writer = null;
     this.meta = {
       char: this.char,
@@ -80,27 +80,26 @@
     _initDOM: function () {
       this.container.innerHTML = '';
       this.container.style.position = 'relative';
-      this.container.style.width = `${this.options.width}px`;
-      this.container.style.height = `${this.options.height}px`;
+      this.container.style.width = `${this.size}px`;
+      this.container.style.height = `${this.size}px`;
       this.container.style.boxSizing = 'border-box';
       this.container.style.backgroundColor = '#ffffff';
 
-      // 田자형 가이드 격자 SVG 배경 생성
       const gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       gridSvg.setAttribute('width', '100%');
       gridSvg.setAttribute('height', '100%');
+      gridSvg.setAttribute('viewBox', `0 0 ${this.size} ${this.size}`);
       gridSvg.style.position = 'absolute';
       gridSvg.style.top = '0';
       gridSvg.style.left = '0';
       gridSvg.style.pointerEvents = 'none';
       gridSvg.innerHTML = `
-        <rect x="1" y="1" width="${this.options.width - 2}" height="${this.options.height - 2}" fill="none" stroke="#94a3b8" stroke-width="2"/>
-        <line x1="${this.options.width / 2}" y1="0" x2="${this.options.width / 2}" y2="${this.options.height}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 6"/>
-        <line x1="0" y1="${this.options.height / 2}" x2="${this.options.width}" y2="${this.options.height / 2}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 6"/>
+        <rect x="1" y="1" width="${this.size - 2}" height="${this.size - 2}" fill="none" stroke="#94a3b8" stroke-width="2"/>
+        <line x1="${this.size / 2}" y1="0" x2="${this.size / 2}" y2="${this.size}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 6"/>
+        <line x1="0" y1="${this.size / 2}" x2="${this.size}" y2="${this.size / 2}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 6"/>
       `;
       this.container.appendChild(gridSvg);
 
-      // HanziWriter 타겟 래퍼
       this.targetEl = document.createElement('div');
       this.targetEl.style.width = '100%';
       this.targetEl.style.height = '100%';
@@ -108,17 +107,18 @@
     },
 
     _initWriter: function () {
+      if (!global.HanziWriter) return;
       this.targetEl.innerHTML = '';
       this.writer = global.HanziWriter.create(this.targetEl, this.char, {
-        width: this.options.width,
-        height: this.options.height,
-        padding: 15,
+        width: this.size,
+        height: this.size,
+        padding: Math.max(10, Math.round(this.size * 0.05)),
         strokeColor: this.options.strokeColor,
-        radicalColor: this.options.radicalColor, // ★ 부수 상시 하이라이트 적용
+        radicalColor: this.options.radicalColor,
         outlineColor: this.options.outlineColor,
         highlightColor: this.options.highlightColor,
         drawingColor: this.options.drawingColor,
-        drawingWidth: this.options.drawingWidth,
+        drawingWidth: Math.max(14, Math.round(this.size * 0.06)),
         strokeAnimationSpeed: this.options.animSpeed * 1.2,
         delayBetweenStrokes: 150,
         showOutline: true,
@@ -140,14 +140,12 @@
       });
     },
 
-    // 부수 위치 및 획수 기하학적 메타데이터 계산
     _parseCharMeta: function (data) {
       const totalStrokes = data.strokes.length;
       const radStrokes = Array.isArray(data.radStrokes) ? data.radStrokes : [];
       const radCount = radStrokes.length;
       const remainCount = Math.max(0, totalStrokes - radCount);
 
-      // 부수 위치 자동 분석
       let radPosition = '단독/전체';
       if (radCount > 0 && radCount < totalStrokes && data.medians) {
         let radMinX = Infinity, radMaxX = -Infinity;
@@ -177,7 +175,7 @@
             radPosition = '변 (좌측)';
           } else if (radMinX > 460 && radAvgX > 560 && radHeight > 350) {
             radPosition = '방 (우측)';
-          } else if (radMinY > 500 && radWidth > 380) { // 폰트 좌표계 Y-Up 기준 상단
+          } else if (radMinY > 500 && radWidth > 380) {
             radPosition = '머리 (상단)';
           } else if (radMaxY < 500 && radWidth > 380) {
             radPosition = '발 (하단)';
@@ -215,8 +213,15 @@
       this._notifyStrokeChange();
     },
 
+    resize: function (newSize) {
+      if (!newSize || Math.abs(this.size - newSize) < 4) return;
+      this.size = Math.round(newSize);
+      this._initDOM();
+      this._initWriter();
+    },
+
     setCharacter: function (char) {
-      if (!char || char === this.char) return;
+      if (!char) return;
       this.char = char;
       if (this.writer) {
         this.isReady = false;
@@ -233,7 +238,7 @@
 
     setMode: function (mode) {
       if (this.mode === mode) return;
-      this.mode = mode; // 'demo' | 'practice'
+      this.mode = mode;
       this._applyMode();
     },
 
@@ -241,9 +246,6 @@
       return Object.assign({}, this.meta);
     },
 
-    // -------------------------------------------------------------
-    // 획순 시연 모드 (Demo Mode) API
-    // -------------------------------------------------------------
     playAnimation: function () {
       if (!this.writer || !this.isReady || this.mode !== 'demo') return;
 
@@ -265,24 +267,22 @@
     },
 
     stepNextStroke: function () {
-      if (!this.writer || !this.isReady) return;
+      if (!this.writer || !this.isReady || this.mode !== 'demo') return;
 
-      if (this.mode === 'demo') {
-        if (this.currentStroke < this.meta.totalStrokes) {
-          this.writer.animateStroke(this.currentStroke, {
-            onComplete: () => {
-              this.currentStroke++;
-              this._notifyStrokeChange();
-            }
-          });
-        }
+      if (this.currentStroke < this.meta.totalStrokes) {
+        this.writer.animateStroke(this.currentStroke, {
+          onComplete: () => {
+            this.currentStroke++;
+            this._notifyStrokeChange();
+          }
+        });
       }
     },
 
     stepPrevStroke: function () {
-      if (!this.writer || !this.isReady) return;
+      if (!this.writer || !this.isReady || this.mode !== 'demo') return;
 
-      if (this.mode === 'demo' && this.currentStroke > 0) {
+      if (this.currentStroke > 0) {
         this.currentStroke--;
         this.writer.hideCharacter();
         for (let i = 0; i < this.currentStroke; i++) {
@@ -297,9 +297,6 @@
       this._applyMode();
     },
 
-    // -------------------------------------------------------------
-    // 쓰기 연습 모드 (Quiz / 실시간 판정 & 스냅) API
-    // -------------------------------------------------------------
     startQuiz: function () {
       if (!this.writer || !this.isReady) return;
 

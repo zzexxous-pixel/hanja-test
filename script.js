@@ -24,6 +24,11 @@ let isCardLock = false;
 let titleClickCount = 0;
 let titleClickTimer = null;
 
+// [신규] 쓰기 엔진 싱글톤 및 모달 상태 홀더
+let modalWriter = null;
+let currentModalMode = 'demo';
+let modalResizeObserver = null;
+
 function saveBookmarks() {
     localStorage.setItem('hanja_bookmarks', JSON.stringify(bookmarks));
 }
@@ -393,17 +398,22 @@ let currentVoiceHanja = '';
 let currentVoiceHun = '';
 let currentActiveModalIdx = 0;
 
+// [교체] openModal 및 closeModal 전체 구현체
 function openModal(index) {
     const data = hanjaData[index];
+    if (!data) return;
+
     currentVoiceHanja = data.h;
     currentVoiceHun = data.m;
     currentActiveModalIdx = index;
     
+    // 1. 헤더 데이터 바인딩
     document.getElementById('modal-idx').innerText = `NO. ${String(index + 1).padStart(3, '0')}`;
     document.getElementById('modal-hanja').innerText = data.h;
     document.getElementById('modal-hun').innerText = data.m;
     document.getElementById('naver-link').href = `https://hanja.dict.naver.com/#/search?query=${encodeURIComponent(data.h)}`;
 
+    // 2. 즐겨찾기 바인딩
     const modalStarBtn = document.getElementById('modal-star-btn');
     modalStarBtn.onclick = (e) => toggleBookmark(index, e);
     
@@ -411,14 +421,22 @@ function openModal(index) {
     modalIdx.onclick = (e) => toggleBookmark(index, e);
 
     updateModalStarState(index);
+    updateModalNavState();
 
+    // 3. 모달 DOM 활성화
     const modal = document.getElementById('detail-modal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     setTimeout(() => {
         modal.classList.remove('opacity-0');
-        modal.querySelector('.transform').classList.remove('scale-95');
-        modal.querySelector('.transform').classList.add('scale-100');
+        const card = modal.querySelector('.transform');
+        if (card) {
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+        }
+
+        // 4. WritingEngine 캔버스 바인딩 및 뷰포트 크기 자동 계산
+        initModalWritingEngine(data.h);
     }, 10);
 
     appLog('System', `상세 모달 팝업 열림 ➡️ #${index + 1} (${data.h} : ${data.m})`);
@@ -427,8 +445,17 @@ function openModal(index) {
 function closeModal() {
     const modal = document.getElementById('detail-modal');
     if (!modal) return;
+
+    // 백그라운드 리소스 및 애니메이션/퀴즈 정리
+    if (modalWriter) {
+        modalWriter.pauseAnimation();
+    }
+    if (modalResizeObserver) {
+        modalResizeObserver.disconnect();
+        modalResizeObserver = null;
+    }
+
     modal.classList.add('opacity-0');
-    
     const transformTarget = modal.querySelector('.transform');
     if (transformTarget) {
         transformTarget.classList.add('scale-95');
@@ -440,6 +467,201 @@ function closeModal() {
     }, 300);
 
     appLog('System', '상세 모달 팝업 닫힘');
+}
+
+// ==========================================================================
+// === 쓰기 모달 전용 엔진 라이프사이클 및 컨트롤러 함수군 ===
+// ==========================================================================
+
+function computeOptimalCanvasSize() {
+    const wrapper = document.getElementById('writing-viewport-wrapper');
+    if (!wrapper) return 280;
+    const availWidth = wrapper.clientWidth - 70; // 좌우 네비 버튼 공간 35px씩 차감
+    const availHeight = wrapper.clientHeight - 8;
+    const rawSize = Math.min(availWidth, availHeight);
+    return Math.max(180, Math.min(rawSize, 360));
+}
+
+function initModalWritingEngine(char) {
+    const container = document.getElementById('writingContainer');
+    if (!container) return;
+
+    const initialSize = computeOptimalCanvasSize();
+
+    if (!modalWriter) {
+        modalWriter = new WritingEngine({
+            container: container,
+            char: char,
+            mode: currentModalMode,
+            width: initialSize,
+            height: initialSize,
+            onCharLoaded: (meta) => {
+                updateModalSpecUI(meta);
+            },
+            onStrokeChange: (current, total) => {
+                const badge = document.getElementById('modal-stroke-badge');
+                if (badge) badge.innerText = `획순: ${current} / ${total}`;
+            },
+            onStrokeSuccess: (current, total) => {
+                const status = document.getElementById('modal-stroke-status');
+                if (status) {
+                    status.className = 'text-emerald-600 font-bold';
+                    status.innerText = `정답! (${current}/${total} 획 통과)`;
+                }
+            },
+            onStrokeError: (index, reason) => {
+                const status = document.getElementById('modal-stroke-status');
+                if (status) {
+                    status.className = 'text-rose-500 font-bold';
+                    status.innerText = reason;
+                }
+            },
+            onComplete: () => {
+                const status = document.getElementById('modal-stroke-status');
+                if (status) {
+                    status.className = 'text-emerald-600 font-bold';
+                    status.innerText = '🎉 완벽하게 작성했습니다!';
+                }
+            }
+        });
+    } else {
+        modalWriter.resize(initialSize);
+        modalWriter.setCharacter(char);
+    }
+
+    // 모달 크기 변경 감지용 ResizeObserver 바인딩
+    const wrapper = document.getElementById('writing-viewport-wrapper');
+    if (wrapper && window.ResizeObserver) {
+        if (modalResizeObserver) modalResizeObserver.disconnect();
+        modalResizeObserver = new ResizeObserver(() => {
+            const newSize = computeOptimalCanvasSize();
+            if (modalWriter) modalWriter.resize(newSize);
+        });
+        modalResizeObserver.observe(wrapper);
+    }
+}
+
+function updateModalSpecUI(meta) {
+    const totalEl = document.getElementById('chip-total-strokes');
+    const radEl = document.getElementById('chip-radical-strokes');
+    const posEl = document.getElementById('chip-radical-pos');
+    const statusEl = document.getElementById('modal-stroke-status');
+    const badgeEl = document.getElementById('modal-stroke-badge');
+
+    if (totalEl) totalEl.innerText = `총 ${meta.totalStrokes}획`;
+    if (radEl) radEl.innerText = `부수 ${meta.radCount}획 (잔여 ${meta.remainCount}획)`;
+    if (posEl) posEl.innerText = `위치: ${meta.radPosition}`;
+    if (badgeEl) badgeEl.innerText = `획순: 0 / ${meta.totalStrokes}`;
+    if (statusEl) {
+        statusEl.className = 'text-blue-600 font-bold';
+        statusEl.innerText = currentModalMode === 'demo' ? '획순 시연 준비 완료' : '직접 한자를 써보세요.';
+    }
+}
+
+function setModalMode(mode) {
+    currentModalMode = mode;
+    const btnDemo = document.getElementById('btn-mode-demo');
+    const btnPractice = document.getElementById('btn-mode-practice');
+    const panelDemo = document.getElementById('panel-mode-demo');
+    const panelPractice = document.getElementById('panel-mode-practice');
+
+    if (mode === 'demo') {
+        if (btnDemo) btnDemo.className = 'writing-tab-btn active';
+        if (btnPractice) btnPractice.className = 'writing-tab-btn';
+        if (panelDemo) panelDemo.classList.remove('hidden');
+        if (panelPractice) panelPractice.classList.add('hidden');
+    } else {
+        if (btnDemo) btnDemo.className = 'writing-tab-btn';
+        if (btnPractice) btnPractice.className = 'writing-tab-btn active';
+        if (panelDemo) panelDemo.classList.add('hidden');
+        if (panelPractice) panelPractice.classList.remove('hidden');
+    }
+
+    if (modalWriter) {
+        modalWriter.setMode(mode);
+    }
+}
+
+function playModalWriting() {
+    if (modalWriter) {
+        const status = document.getElementById('modal-stroke-status');
+        if (status) {
+            status.className = 'text-blue-600 font-bold';
+            status.innerText = '획순 시연 재생 중...';
+        }
+        modalWriter.playAnimation();
+    }
+}
+
+function pauseModalWriting() {
+    if (modalWriter) {
+        const status = document.getElementById('modal-stroke-status');
+        if (status) {
+            status.className = 'text-slate-500 font-bold';
+            status.innerText = '일시 정지됨';
+        }
+        modalWriter.pauseAnimation();
+    }
+}
+
+function stepPrevModalStroke() {
+    if (modalWriter) modalWriter.stepPrevStroke();
+}
+
+function stepNextModalStroke() {
+    if (modalWriter) modalWriter.stepNextStroke();
+}
+
+function resetModalWriting() {
+    if (modalWriter) {
+        modalWriter.reset();
+        const status = document.getElementById('modal-stroke-status');
+        if (status) {
+            status.className = 'text-blue-600 font-bold';
+            status.innerText = '처음부터 다시 작성합니다.';
+        }
+    }
+}
+
+function updateModalNavState() {
+    const prevBtn = document.getElementById('btn-modal-prev-hanja');
+    const nextBtn = document.getElementById('btn-modal-next-hanja');
+    if (!prevBtn || !nextBtn) return;
+
+    if (activeTab === 13) {
+        const favIdx = activeFavoriteIndices.indexOf(currentActiveModalIdx);
+        prevBtn.disabled = (favIdx <= 0);
+        nextBtn.disabled = (favIdx === -1 || favIdx >= activeFavoriteIndices.length - 1);
+    } else {
+        prevBtn.disabled = (currentActiveModalIdx <= 0);
+        nextBtn.disabled = (currentActiveModalIdx >= hanjaData.length - 1);
+    }
+}
+
+function prevModalHanja() {
+    if (activeTab === 13) {
+        const favIdx = activeFavoriteIndices.indexOf(currentActiveModalIdx);
+        if (favIdx > 0) {
+            openModal(activeFavoriteIndices[favIdx - 1]);
+        }
+    } else {
+        if (currentActiveModalIdx > 0) {
+            openModal(currentActiveModalIdx - 1);
+        }
+    }
+}
+
+function nextModalHanja() {
+    if (activeTab === 13) {
+        const favIdx = activeFavoriteIndices.indexOf(currentActiveModalIdx);
+        if (favIdx !== -1 && favIdx < activeFavoriteIndices.length - 1) {
+            openModal(activeFavoriteIndices[favIdx + 1]);
+        }
+    } else {
+        if (currentActiveModalIdx < hanjaData.length - 1) {
+            openModal(currentActiveModalIdx + 1);
+        }
+    }
 }
 
 function getEum(m) {

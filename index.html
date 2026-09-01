@@ -95,34 +95,108 @@
         </div>
     </div>
 
-    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-opacity duration-300 opacity-0">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-50 pb-3">
-                <div class="flex items-center gap-2.5">
+<div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-3 sm:p-4 transition-opacity duration-300 opacity-0 select-none">
+        <div class="writing-modal-card bg-white rounded-3xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300 flex flex-col justify-between overflow-hidden">
+            
+            <!-- Line 1: 상단 헤더 (식별자 + 한자/훈음 + 닫기) -->
+            <div class="flex justify-between items-center pb-2.5 border-b border-slate-100 shrink-0">
+                <div class="flex items-center gap-2">
                     <button id="modal-star-btn" class="btn-popup-top-icon theme-star unstarred" title="즐겨찾기">
                         <i class="fa-solid fa-star"></i>
                     </button>
-                    <span class="text-sm font-bold text-slate-400 cursor-pointer select-none" id="modal-idx">NO. 001</span>
+                    <span class="text-xs sm:text-sm font-mono font-extrabold text-slate-400 cursor-pointer" id="modal-idx">NO. 001</span>
+                </div>
+                <div class="flex items-center gap-1.5 font-black text-base sm:text-lg">
+                    <span id="modal-hanja" class="hanja-font text-blue-700 text-xl sm:text-2xl">家</span>
+                    <span class="text-slate-300 font-normal text-sm">(</span>
+                    <span id="modal-hun" class="text-slate-800 text-sm sm:text-base">집 가</span>
+                    <span class="text-slate-300 font-normal text-sm">)</span>
                 </div>
                 <button data-action="close-modal" class="btn-popup-top-icon theme-close" title="닫기">
-                    <i class="fa-solid fa-xmark"></i>
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-            <div class="flex flex-col items-center py-4 text-center">
-                <div class="hanja-font text-[7rem] sm:text-[8.5rem] font-bold text-slate-900 bg-slate-50 w-48 h-48 rounded-3xl flex items-center justify-center shadow-inner border border-slate-100 mb-6 leading-none" id="modal-hanja">
-                    家
+
+            <!-- Line 2: 한자 스펙 배지 바 -->
+            <div class="writing-spec-bar flex items-center justify-between bg-slate-50 border border-slate-200/60 rounded-xl px-2.5 py-1.5 mt-2 shrink-0 text-xs">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span id="chip-total-strokes" class="spec-chip">총 0획</span>
+                    <span id="chip-radical-strokes" class="spec-chip chip-radical">부수 0획</span>
+                    <span id="chip-radical-pos" class="spec-chip chip-position">위치: -</span>
                 </div>
-                <h3 class="text-2xl font-black text-blue-700 mb-2" id="modal-hun">집 가</h3>
-                <p class="text-slate-400 text-xs mb-6" id="modal-category">배정한자</p>
-                <div class="w-full grid grid-cols-2 gap-2 text-sm">
-                    <button data-action="modal-tts" class="btn-popup-action theme-slate">
-                        <i class="fa-solid fa-volume-high"></i> 훈음 듣기
-                    </button>
-                    <a id="naver-link" href="#" target="_blank" class="btn-popup-action theme-blue">
-                        <i class="fa-solid fa-search"></i> 사전 검색
-                    </a>
+                <div class="hidden sm:flex items-center gap-2 text-[11px] font-semibold text-slate-400 pl-2">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-600"></span>부수</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-800"></span>몸체</span>
                 </div>
             </div>
+
+            <!-- Line 3: 모드 전환 탭 -->
+            <div class="writing-tab-bar grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mt-2 shrink-0">
+                <button id="btn-mode-demo" onclick="setModalMode('demo')" class="writing-tab-btn active">
+                    <i class="fa-solid fa-play text-xs mr-1"></i> 획순 시연
+                </button>
+                <button id="btn-mode-practice" onclick="setModalMode('practice')" class="writing-tab-btn">
+                    <i class="fa-solid fa-pen-nib text-xs mr-1"></i> 직접 쓰기
+                </button>
+            </div>
+
+            <!-- Center: 중앙 대형 캔버스 & 좌우 플로팅 네비게이션 -->
+            <div id="writing-viewport-wrapper" class="relative flex-grow flex items-center justify-center my-2 min-h-0">
+                <button id="btn-modal-prev-hanja" onclick="prevModalHanja()" class="btn-modal-nav left-0 sm:left-1" title="이전 한자">
+                    <i class="fa-solid fa-chevron-left text-sm"></i>
+                </button>
+
+                <div id="writingContainer" class="writing-canvas-container rounded-2xl overflow-hidden shadow-inner border border-slate-200 flex items-center justify-center bg-white"></div>
+
+                <button id="btn-modal-next-hanja" onclick="nextModalHanja()" class="btn-modal-nav right-0 sm:right-1" title="다음 한자">
+                    <i class="fa-solid fa-chevron-right text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Line 4: 모드별 조작 패널 & 실시간 피드백 -->
+            <div class="writing-control-panel shrink-0">
+                <!-- 시연 모드 컨트롤 -->
+                <div id="panel-mode-demo" class="space-y-1.5">
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button onclick="playModalWriting()" class="btn-writing-action btn-accent-red">
+                            <i class="fa-solid fa-play"></i> 재생
+                        </button>
+                        <button onclick="pauseModalWriting()" class="btn-writing-action btn-neutral">
+                            <i class="fa-solid fa-pause"></i> 정지
+                        </button>
+                        <button onclick="stepPrevModalStroke()" class="btn-writing-action btn-neutral">
+                            <i class="fa-solid fa-backward-step"></i> 이전획
+                        </button>
+                        <button onclick="stepNextModalStroke()" class="btn-writing-action btn-neutral">
+                            <i class="fa-solid fa-forward-step"></i> 다음획
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 연습 모드 컨트롤 -->
+                <div id="panel-mode-practice" class="hidden">
+                    <button onclick="resetModalWriting()" class="w-full btn-writing-action btn-accent-blue py-2">
+                        <i class="fa-solid fa-rotate-left"></i> 처음부터 다시 쓰기
+                    </button>
+                </div>
+
+                <!-- 실시간 상태 피드백 -->
+                <div class="flex justify-between items-center text-[11px] text-slate-400 font-semibold pt-1.5 px-0.5">
+                    <span id="modal-stroke-status" class="text-blue-600 font-bold">준비 완료</span>
+                    <span id="modal-stroke-badge" class="font-mono text-slate-500">획순: 0 / 0</span>
+                </div>
+            </div>
+
+            <!-- Line 5: 하단 공통 액션 바 -->
+            <div class="grid grid-cols-2 gap-2 text-sm pt-2 border-t border-slate-100 shrink-0">
+                <button data-action="modal-tts" class="btn-popup-action theme-slate py-2 text-xs sm:text-sm">
+                    <i class="fa-solid fa-volume-high"></i> 훈음 듣기
+                </button>
+                <a id="naver-link" href="#" target="_blank" class="btn-popup-action theme-blue py-2 text-xs sm:text-sm">
+                    <i class="fa-solid fa-search"></i> 사전 검색
+                </a>
+            </div>
+
         </div>
     </div>
 
@@ -161,6 +235,7 @@
     <script src="hanja_data.js?v={{APP_VERSION}}"></script>
     <script src="audioEngine.js?v={{APP_VERSION}}"></script>
     <script src="speechEngine.js?v={{APP_VERSION}}"></script>
+    <script src="writingEngine.js?v={{APP_VERSION}}"></script>
     <script src="script.js?v={{APP_VERSION}}"></script>
 </body>
 </html>
