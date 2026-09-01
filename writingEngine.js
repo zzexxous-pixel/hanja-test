@@ -1,7 +1,7 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (CSS 선언적 부수 음영 하이라이트, 기하학적 메타데이터 분석 및 동적 리사이징 지원)
+ * (CSS 선언적 부수 음영 하이라이트, 사용자 필기선 격리 및 동적 리사이징 지원)
  */
 (function (global) {
   'use strict';
@@ -33,11 +33,10 @@
       height: 320,
       strokeColor: '#1e293b',
       radicalColor: '#2563eb',        // 부수 본체 강조 색상 (파란색)
-      outlineColor: '#e2e8f0',        // 일반 몸체 음영 색상 (회색)
-      outlineRadicalColor: '#93c5fd', // ★ 음영 상태 부수 구분 색상 (흐린 파란색)
+      outlineColor: '#e2e8f0',        // 일반 몸체 음영 색상 (연회색)
+      outlineRadicalColor: '#bfdbfe', // ★ 음영 부수 구분 색상 (더 흐리고 부드러운 파스텔 하늘색)
       highlightColor: '#ef4444',
-      drawingColor: '#2563eb',
-      drawingWidth: 20,
+      drawingColor: '#334155',        // ★ 직접 쓰기 필기선 색상 (Dark Gray)
       animSpeed: 1.0,
       onCharLoaded: null,
       onStrokeChange: null,
@@ -114,6 +113,10 @@
     _initWriter: function () {
       if (!global.HanziWriter) return;
       this.targetEl.innerHTML = '';
+      
+      // 쓰기 연습용 최적화 펜 두께 계산 (8px ~ 13px 사이로 깔끔하게 렌더링)
+      const penWidth = Math.max(8, Math.round(this.size * 0.025));
+
       this.writer = global.HanziWriter.create(this.targetEl, this.char, {
         width: this.size,
         height: this.size,
@@ -122,8 +125,8 @@
         radicalColor: this.options.radicalColor,
         outlineColor: this.options.outlineColor,
         highlightColor: this.options.highlightColor,
-        drawingColor: this.options.drawingColor,
-        drawingWidth: Math.max(14, Math.round(this.size * 0.06)),
+        drawingColor: this.options.drawingColor, // Dark Gray (#334155)
+        drawingWidth: penWidth,
         strokeAnimationSpeed: this.options.animSpeed * 1.2,
         delayBetweenStrokes: 150,
         showOutline: true,
@@ -205,8 +208,20 @@
       };
     },
 
-    // ★ 타이머 없는 선언적 CSS 주입: Outline SVG의 부수 획만 흐린 파란색 고정
+    // 음영 배경 그룹만 식별 태그 부착
+    _markOutlineGroup: function () {
+      if (!this.targetEl) return;
+      const svg = this.targetEl.querySelector('svg');
+      if (!svg) return;
+      const firstG = svg.querySelector('g');
+      if (firstG && !firstG.hasAttribute('data-outline-group')) {
+        firstG.setAttribute('data-outline-group', 'true');
+      }
+    },
+
+    // ★ 선언적 CSS 주입 (사용자 필기선 오염 원천 차단)
     _applyOutlineRadicalStyle: function () {
+      this._markOutlineGroup();
       let styleEl = this.container.querySelector('style[data-rad-style]');
       if (!styleEl) {
         styleEl = document.createElement('style');
@@ -214,21 +229,30 @@
         this.container.appendChild(styleEl);
       }
 
+      const containerId = this.container.id ? `#${this.container.id}` : '.writing-canvas-container';
+
       if (!this.meta.radStrokes || this.meta.radStrokes.length === 0) {
-        styleEl.textContent = '';
+        styleEl.textContent = `
+          ${containerId} svg path[fill="none"] {
+            fill: none !important;
+          }
+        `;
         return;
       }
 
-      const radColor = this.options.outlineRadicalColor || '#93c5fd';
-      const containerId = this.container.id ? `#${this.container.id}` : '.writing-canvas-container';
+      const radColor = this.options.outlineRadicalColor || '#bfdbfe';
       const selectors = this.meta.radStrokes
-        .map(idx => `${containerId} div > svg g:first-of-type > path:nth-of-type(${idx + 1})`)
+        .map(idx => `${containerId} svg g[data-outline-group] > path:nth-of-type(${idx + 1})`)
         .join(',\n');
 
       styleEl.textContent = `
         ${selectors} {
           fill: ${radColor} !important;
           stroke: ${radColor} !important;
+        }
+        /* 사용자가 긋는 필기선이 면으로 채워지는 현상 방어 */
+        ${containerId} svg path[fill="none"] {
+          fill: none !important;
         }
       `;
     },
