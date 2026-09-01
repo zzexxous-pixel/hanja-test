@@ -1,7 +1,7 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (CSS 선언적 부수 음영 하이라이트, 사용자 필기선 격리 및 동적 리사이징 지원)
+ * (전용 클래스 기반 부수 음영 하이라이트, 붓글씨 두께 필기선 및 동적 리사이징 지원)
  */
 (function (global) {
   'use strict';
@@ -32,11 +32,11 @@
       width: 320,
       height: 320,
       strokeColor: '#1e293b',
-      radicalColor: '#2563eb',        // 부수 본체 강조 색상 (파란색)
-      outlineColor: '#e2e8f0',        // 일반 몸체 음영 색상 (연회색)
-      outlineRadicalColor: '#bfdbfe', // ★ 음영 부수 구분 색상 (더 흐리고 부드러운 파스텔 하늘색)
+      radicalColor: '#2563eb',        // 본체 부수 (선명한 파랑)
+      outlineColor: '#e2e8f0',        // 일반 몸체 음영 (연회색)
+      outlineRadicalColor: '#93c5fd', // ★ 음영 부수 구분 (은은하고 부드러운 소프트 블루)
       highlightColor: '#ef4444',
-      drawingColor: '#334155',        // ★ 직접 쓰기 필기선 색상 (Dark Gray)
+      drawingColor: '#334155',        // ★ 직접 쓰기 필기선 (Dark Gray)
       animSpeed: 1.0,
       onCharLoaded: null,
       onStrokeChange: null,
@@ -86,6 +86,7 @@
       this.container.style.boxSizing = 'border-box';
       this.container.style.backgroundColor = '#ffffff';
 
+      // 1. 또렷한 田자형 격자 생성
       const gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       gridSvg.setAttribute('width', '100%');
       gridSvg.setAttribute('height', '100%');
@@ -104,6 +105,16 @@
       `;
       this.container.appendChild(gridSvg);
 
+      // 2. 부수 전용 클래스 스타일 태그 주입
+      const radStyle = document.createElement('style');
+      radStyle.textContent = `
+        .writing-canvas-container svg path.hw-rad-outline {
+          fill: ${this.options.outlineRadicalColor} !important;
+          stroke: ${this.options.outlineRadicalColor} !important;
+        }
+      `;
+      this.container.appendChild(radStyle);
+
       this.targetEl = document.createElement('div');
       this.targetEl.style.width = '100%';
       this.targetEl.style.height = '100%';
@@ -114,8 +125,8 @@
       if (!global.HanziWriter) return;
       this.targetEl.innerHTML = '';
       
-      // 쓰기 연습용 최적화 펜 두께 계산 (8px ~ 13px 사이로 깔끔하게 렌더링)
-      const penWidth = Math.max(8, Math.round(this.size * 0.025));
+      // ★ 붓글씨 느낌의 도톰하고 깔끔한 펜 굵기 (약 18px ~ 22px)
+      const penWidth = Math.max(18, Math.round(this.size * 0.05));
 
       this.writer = global.HanziWriter.create(this.targetEl, this.char, {
         width: this.size,
@@ -136,7 +147,6 @@
           this._parseCharMeta(data);
           this.isReady = true;
           this._applyMode();
-          this._applyOutlineRadicalStyle();
           this._notifyStrokeChange();
 
           if (typeof this.options.onCharLoaded === 'function') {
@@ -208,53 +218,23 @@
       };
     },
 
-    // 음영 배경 그룹만 식별 태그 부착
-    _markOutlineGroup: function () {
+    // ★ 배경 음영의 부수 path에만 전용 클래스 태깅 (필기선 간섭 100% 차단)
+    _tagOutlineRadicals: function () {
       if (!this.targetEl) return;
       const svg = this.targetEl.querySelector('svg');
       if (!svg) return;
-      const firstG = svg.querySelector('g');
-      if (firstG && !firstG.hasAttribute('data-outline-group')) {
-        firstG.setAttribute('data-outline-group', 'true');
-      }
-    },
+      const outlineGroup = svg.querySelector('g');
+      if (!outlineGroup) return;
+      const paths = outlineGroup.querySelectorAll('path');
+      if (!paths || paths.length === 0) return;
 
-    // ★ 선언적 CSS 주입 (사용자 필기선 오염 원천 차단)
-    _applyOutlineRadicalStyle: function () {
-      this._markOutlineGroup();
-      let styleEl = this.container.querySelector('style[data-rad-style]');
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.setAttribute('data-rad-style', 'true');
-        this.container.appendChild(styleEl);
-      }
-
-      const containerId = this.container.id ? `#${this.container.id}` : '.writing-canvas-container';
-
-      if (!this.meta.radStrokes || this.meta.radStrokes.length === 0) {
-        styleEl.textContent = `
-          ${containerId} svg path[fill="none"] {
-            fill: none !important;
-          }
-        `;
-        return;
-      }
-
-      const radColor = this.options.outlineRadicalColor || '#bfdbfe';
-      const selectors = this.meta.radStrokes
-        .map(idx => `${containerId} svg g[data-outline-group] > path:nth-of-type(${idx + 1})`)
-        .join(',\n');
-
-      styleEl.textContent = `
-        ${selectors} {
-          fill: ${radColor} !important;
-          stroke: ${radColor} !important;
+      paths.forEach((p, idx) => {
+        if (this.meta.radStrokes && this.meta.radStrokes.includes(idx)) {
+          p.classList.add('hw-rad-outline');
+        } else {
+          p.classList.remove('hw-rad-outline');
         }
-        /* 사용자가 긋는 필기선이 면으로 채워지는 현상 방어 */
-        ${containerId} svg path[fill="none"] {
-          fill: none !important;
-        }
-      `;
+      });
     },
 
     _applyMode: function () {
@@ -270,7 +250,7 @@
         this.currentStroke = 0;
         this.startQuiz();
       }
-      this._applyOutlineRadicalStyle();
+      this._tagOutlineRadicals();
       this._notifyStrokeChange();
     },
 
@@ -290,7 +270,6 @@
           this._parseCharMeta(this.writer._charData);
           this.isReady = true;
           this._applyMode();
-          this._applyOutlineRadicalStyle();
           if (typeof this.options.onCharLoaded === 'function') {
             this.options.onCharLoaded(this.meta);
           }
