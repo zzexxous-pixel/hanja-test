@@ -30,12 +30,11 @@ body {
 }
 body.quiz-mode .quiz-blur-target:not(.solved) {
     user-select: none !important;
-    color: #475569 !important;
-    /* 도트 매쉬 마스크: GPU 블러 연산(0ms) 없이 글자를 망점으로 분산시켜 판독을 차단하고 덩어리감만 유지 */
-    -webkit-mask-image: radial-gradient(circle, #000 32%, transparent 35%) !important;
-    mask-image: radial-gradient(circle, #000 32%, transparent 35%) !important;
-    -webkit-mask-size: 3px 3px !important;
-    mask-size: 3px 3px !important;
+    color: #64748b !important;
+    -webkit-mask-image: radial-gradient(circle, #000 26%, transparent 30%) !important;
+    mask-image: radial-gradient(circle, #000 26%, transparent 30%) !important;
+    -webkit-mask-size: 6.5px 6.5px !important;
+    mask-size: 6.5px 6.5px !important;
     -webkit-mask-repeat: repeat !important;
     mask-repeat: repeat !important;
 }
