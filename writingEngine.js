@@ -1,7 +1,7 @@
 /**
  * writingEngine.js
  * 한자 마스터용 표준 붓글씨 획순 애니메이션 & 실시간 쓰기 판정 엔진
- * (MutationObserver 기반 부수 음영 즉시 하이라이트, 인-플레이스 리사이징 및 붓글씨 굵기 최적화)
+ * (1회성 MutationObserver 기반 부수 음영 즉시 하이라이트 & 터치 드로잉 무간섭 최적화)
  */
 (function (global) {
   'use strict';
@@ -34,9 +34,9 @@
       strokeColor: '#1e293b',
       radicalColor: '#2563eb',        // 본체 부수 (선명한 파랑)
       outlineColor: '#e2e8f0',        // 일반 몸체 음영 (연회색)
-      outlineRadicalColor: '#dbeafe', // ★ 음영 부수 구분 (매우 은은하고 부드러운 소프트 파스텔 블루)
+      outlineRadicalColor: '#dbeafe', // 음영 부수 구분 (은은한 소프트 파스텔 블루)
       highlightColor: '#ef4444',
-      drawingColor: '#334155',        // ★ 직접 쓰기 필기선 (Dark Gray)
+      drawingColor: '#334155',        // 직접 쓰기 필기선 (Dark Gray)
       animSpeed: 1.0,
       onCharLoaded: null,
       onStrokeChange: null,
@@ -120,8 +120,16 @@
       this.targetEl.style.height = '100%';
       this.container.appendChild(this.targetEl);
 
-      // 3. 비동기 렌더링 즉시 감지를 위한 MutationObserver 바인딩
-      if (this._observer) this._observer.disconnect();
+      // 3. 비동기 렌더링 즉시 감지용 1회성 옵저버 시작
+      this._startObserver();
+    },
+
+    // ★ 1회성 Observer 가동기 (태깅 완료 시 자동 소멸)
+    _startObserver: function () {
+      if (this._observer) {
+        this._observer.disconnect();
+        this._observer = null;
+      }
       this._observer = new MutationObserver(() => {
         this._tagOutlineRadicals();
       });
@@ -132,7 +140,6 @@
       if (!global.HanziWriter) return;
       this.targetEl.innerHTML = '';
       
-      // ★ 붓글씨 느낌의 도톰하고 매끄러운 펜 굵기 (16px ~ 24px)
       const penWidth = Math.max(16, Math.round(this.size * 0.055));
 
       this.writer = global.HanziWriter.create(this.targetEl, this.char, {
@@ -143,7 +150,7 @@
         radicalColor: this.options.radicalColor,
         outlineColor: this.options.outlineColor,
         highlightColor: this.options.highlightColor,
-        drawingColor: this.options.drawingColor, // Dark Gray (#334155)
+        drawingColor: this.options.drawingColor,
         drawingWidth: penWidth,
         strokeAnimationSpeed: this.options.animSpeed * 1.2,
         delayBetweenStrokes: 150,
@@ -226,23 +233,32 @@
       };
     },
 
-    // ★ 배경 음영의 부수 path에만 전용 클래스 태깅 (0ms 실시간 동기화)
+    // ★ 배경 음영의 부수 path 태깅 및 성공 즉시 Observer 연결 영구 해제
     _tagOutlineRadicals: function () {
-      if (!this.targetEl || !this.meta.radStrokes || this.meta.radStrokes.length === 0) return;
+      if (!this.targetEl || !this.meta.totalStrokes || this.meta.totalStrokes <= 0) return false;
       const svg = this.targetEl.querySelector('svg');
-      if (!svg) return;
+      if (!svg) return false;
       const outlineGroup = svg.querySelector('g');
-      if (!outlineGroup) return;
+      if (!outlineGroup) return false;
       const paths = outlineGroup.querySelectorAll('path');
-      if (!paths || paths.length < this.meta.totalStrokes) return;
+      if (!paths || paths.length < this.meta.totalStrokes) return false;
 
-      paths.forEach((p, idx) => {
-        if (this.meta.radStrokes && this.meta.radStrokes.includes(idx)) {
-          p.classList.add('hw-rad-outline');
-        } else {
-          p.classList.remove('hw-rad-outline');
-        }
-      });
+      if (this.meta.radStrokes && this.meta.radStrokes.length > 0) {
+        paths.forEach((p, idx) => {
+          if (this.meta.radStrokes.includes(idx)) {
+            p.classList.add('hw-rad-outline');
+          } else {
+            p.classList.remove('hw-rad-outline');
+          }
+        });
+      }
+
+      // 태깅 성공 즉시 감시기를 꺼서 터치 드로잉 중의 불필요한 루프를 100% 차단
+      if (this._observer) {
+        this._observer.disconnect();
+        this._observer = null;
+      }
+      return true;
     },
 
     _applyMode: function () {
@@ -262,7 +278,6 @@
       this._notifyStrokeChange();
     },
 
-    // ★ 쓰기 진행도를 초기화하지 않는 무손실 인-플레이스 리사이징
     resize: function (newSize) {
       if (!newSize || Math.abs(this.size - newSize) < 4) return;
       this.size = Math.round(newSize);
@@ -285,11 +300,14 @@
       }
     },
 
+    // ★ 새 한자 로드 시 메타 리셋 및 1회성 Observer 재가동
     setCharacter: function (char) {
       if (!char) return;
       this.char = char;
       if (this.writer) {
         this.isReady = false;
+        this.meta.totalStrokes = 0;
+        this._startObserver();
         this.writer.setCharacter(char).then(() => {
           this._parseCharMeta(this.writer._charData);
           this.isReady = true;
