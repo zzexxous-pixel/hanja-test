@@ -484,6 +484,9 @@ input[type="range"]::-webkit-slider-thumb:active {
     touch-action: none !important;
     user-select: none !important;
     -webkit-user-select: none !important;
+    transform: translateZ(0) !important;
+    will-change: contents !important;
+    backface-visibility: hidden !important;
 }
 
 /* 조작 액션 버튼 */
