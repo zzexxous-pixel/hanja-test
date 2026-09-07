@@ -154,6 +154,7 @@
         drawingWidth: penWidth,
         strokeAnimationSpeed: this.options.animSpeed * 1.2,
         delayBetweenStrokes: 150,
+        strokeFadeDuration: 0,
         showOutline: true,
         showCharacter: false,
         highlightOnComplete: false,
