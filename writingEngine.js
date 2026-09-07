@@ -309,14 +309,20 @@
         this.isReady = false;
         this.meta.totalStrokes = 0;
         this._startObserver();
-        this.writer.setCharacter(char).then(() => {
-          this._parseCharMeta(this.writer._charData);
+
+        Promise.all([
+          this.writer.setCharacter(char),
+          global.HanziWriter.loadCharacterData(char)
+        ]).then(([_, charData]) => {
+          this._parseCharMeta(charData);
           this.isReady = true;
           this._applyMode();
           this._tagOutlineRadicals();
           if (typeof this.options.onCharLoaded === 'function') {
             this.options.onCharLoaded(this.meta);
           }
+        }).catch((err) => {
+          console.error('[WritingEngine] 한자 데이터 변경 로드 실패:', err);
         });
       }
     },

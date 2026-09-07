@@ -16,10 +16,10 @@
             <div class="responsive-header w-full">
                 <!-- 1. 책 아이콘 title 툴팁 완벽 제거 -->
                 <div class="header-title flex items-center gap-2 shrink-0 cursor-default">
-                    <div class="p-1 cursor-default select-none" onclick="handleTitleClick(event)" ontouchstart="handleTitleClick(event)">
+                    <div class="p-1 cursor-default select-none" data-action="title-click">
                         <i class="fa-solid fa-book-open text-yellow-300 text-lg"></i>
                     </div>
-                    <button onclick="openGradeModal()" class="flex items-center gap-1.5 text-base sm:text-lg font-black tracking-tight whitespace-nowrap text-white hover:text-yellow-200 transition-colors focus:outline-none">
+                    <button data-action="open-grade-modal" class="flex items-center gap-1.5 text-base sm:text-lg font-black tracking-tight whitespace-nowrap text-white hover:text-yellow-200 transition-colors focus:outline-none">
                         <span id="header-grade-title">4급 한자 마스터</span>
                         <i class="fa-solid fa-chevron-down text-xs text-yellow-300"></i>
                     </button>
@@ -28,13 +28,13 @@
                 <!-- 2. 우측 제어 장치들을 단일 그룹으로 묶어 모바일 대응 및 말하기 도전 최우측 고정 -->
                 <div class="header-controls-group">
                     <div id="pager-wrapper" class="flex items-center gap-1 bg-blue-950/40 p-1 rounded-lg h-10 text-white shadow-sm transition-all duration-200 shrink-0 select-none">
-                        <button id="btn-prev-page" onclick="prevPage()" class="btn-header-ctrl" title="이전 페이지"><i class="fa-solid fa-caret-left text-sm"></i></button>
+                        <button id="btn-prev-page" data-action="prev-page" class="btn-header-ctrl" title="이전 페이지"><i class="fa-solid fa-caret-left text-sm"></i></button>
                         <span id="page-indicator" class="w-14 shrink-0 font-mono font-extrabold text-xs text-center text-white select-none">1 / 12</span>
-                        <button id="btn-next-page" onclick="nextPage()" class="btn-header-ctrl" title="다음 페이지"><i class="fa-solid fa-caret-right text-sm"></i></button>
+                        <button id="btn-next-page" data-action="next-page" class="btn-header-ctrl" title="다음 페이지"><i class="fa-solid fa-caret-right text-sm"></i></button>
                     </div>
-                    <button id="tab-7" onclick="toggleFavorites()" class="btn-header-ctrl" title="즐겨찾기"><i class="fa-solid fa-star"></i></button>
-                    <button onclick="openSettingsModal()" class="btn-header-ctrl" title="환경 설정"><i class="fa-solid fa-gear"></i></button>
-                    
+                    <button id="tab-7" data-action="toggle-favorites" class="btn-header-ctrl" title="즐겨찾기"><i class="fa-solid fa-star"></i></button>
+                    <button data-action="open-settings-modal" class="btn-header-ctrl" title="환경 설정"><i class="fa-solid fa-gear"></i></button>   
+
                     <!-- 말하기 도전 버튼이 항상 그룹의 가장 마지막에 렌더링됩니다 -->
                     <button id="btn-toggle-quiz" data-action="toggle-quiz" class="btn-quiz-toggle theme-yellow">
                         <i class="fa-solid fa-microphone"></i> <span>말하기 도전</span>
@@ -54,7 +54,7 @@
                 <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-gear text-slate-600"></i> 환경 설정
                 </h3>
-                <button onclick="closeSettingsModal()" class="btn-popup-top-icon theme-close" title="닫기">
+                <button data-action="close-settings-modal" class="btn-popup-top-icon theme-close" title="닫기">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -65,8 +65,7 @@
                         <span id="threshold-value-display" class="text-sm font-extrabold text-blue-600">60%</span>
                     </div>
                     <input type="range" id="threshold-slider" min="30" max="90" step="5" value="60" 
-                           class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none"
-                           oninput="updateThresholdFromSlider(this.value)">
+                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none">
                     <div class="flex justify-between text-[10px] text-slate-400 mt-2 select-none font-medium">
                         <span>느슨하게 (30%)</span>
                         <span>보통 (60%)</span>
@@ -86,7 +85,7 @@
                 <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-graduation-cap text-blue-600"></i> 학습 급수 선택
                 </h3>
-                <button onclick="closeGradeModal()" class="btn-popup-top-icon theme-close" title="닫기">
+                <button data-action="close-grade-modal" class="btn-popup-top-icon theme-close" title="닫기">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -132,50 +131,46 @@
 
             <!-- Line 3: 모드 전환 탭 -->
             <div class="writing-tab-bar grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mt-2 shrink-0">
-                <button id="btn-mode-demo" onclick="setModalMode('demo')" class="writing-tab-btn active">
+                <button id="btn-mode-demo" data-action="set-modal-mode" data-mode="demo" class="writing-tab-btn active">
                     <i class="fa-solid fa-play text-xs mr-1"></i> 획순 시연
                 </button>
-                <button id="btn-mode-practice" onclick="setModalMode('practice')" class="writing-tab-btn">
+                <button id="btn-mode-practice" data-action="set-modal-mode" data-mode="practice" class="writing-tab-btn">
                     <i class="fa-solid fa-pen-nib text-xs mr-1"></i> 직접 쓰기
                 </button>
             </div>
 
-            <!-- Center: 중앙 대형 캔버스 & 좌우 플로팅 네비게이션 -->
             <div id="writing-viewport-wrapper" class="relative flex-grow flex items-center justify-center my-2 min-h-0">
-                <button id="btn-modal-prev-hanja" onclick="prevModalHanja()" class="btn-modal-nav left-0 sm:left-1" title="이전 한자">
+                <button id="btn-modal-prev-hanja" data-action="prev-modal-hanja" class="btn-modal-nav left-0 sm:left-1" title="이전 한자">
                     <i class="fa-solid fa-chevron-left text-sm"></i>
                 </button>
 
                 <div id="writingContainer" class="writing-canvas-container rounded-xl overflow-hidden border-2 border-slate-300 flex items-center justify-center bg-white"></div>
 
-                <button id="btn-modal-next-hanja" onclick="nextModalHanja()" class="btn-modal-nav right-0 sm:right-1" title="다음 한자">
+                <button id="btn-modal-next-hanja" data-action="next-modal-hanja" class="btn-modal-nav right-0 sm:right-1" title="다음 한자">
                     <i class="fa-solid fa-chevron-right text-sm"></i>
                 </button>
             </div>
 
-            <!-- Line 4: 모드별 조작 패널 & 실시간 피드백 -->
             <div class="writing-control-panel shrink-0">
-                <!-- 시연 모드 컨트롤 -->
                 <div id="panel-mode-demo" class="space-y-1.5">
                     <div class="grid grid-cols-4 gap-1.5">
-                        <button onclick="playModalWriting()" class="btn-writing-action btn-accent-red">
+                        <button data-action="play-modal-writing" class="btn-writing-action btn-accent-red">
                             <i class="fa-solid fa-play"></i> 재생
                         </button>
-                        <button onclick="pauseModalWriting()" class="btn-writing-action btn-neutral">
+                        <button data-action="pause-modal-writing" class="btn-writing-action btn-neutral">
                             <i class="fa-solid fa-pause"></i> 정지
                         </button>
-                        <button onclick="stepPrevModalStroke()" class="btn-writing-action btn-neutral">
+                        <button data-action="step-prev-modal-stroke" class="btn-writing-action btn-neutral">
                             <i class="fa-solid fa-backward-step"></i> 이전획
                         </button>
-                        <button onclick="stepNextModalStroke()" class="btn-writing-action btn-neutral">
+                        <button data-action="step-next-modal-stroke" class="btn-writing-action btn-neutral">
                             <i class="fa-solid fa-forward-step"></i> 다음획
                         </button>
                     </div>
                 </div>
 
-                <!-- 연습 모드 컨트롤 -->
                 <div id="panel-mode-practice" class="hidden">
-                    <button onclick="resetModalWriting()" class="w-full btn-writing-action btn-accent-blue py-2">
+                    <button data-action="reset-modal-writing" class="w-full btn-writing-action btn-accent-blue py-2">
                         <i class="fa-solid fa-rotate-left"></i> 처음부터 다시 쓰기
                     </button>
                 </div>

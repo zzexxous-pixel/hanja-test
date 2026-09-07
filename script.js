@@ -1,3 +1,6 @@
+(function (global) {
+'use strict';
+
 let currentGrade = localStorage.getItem('hanja_grade') || '4급';
 let totalPages = 12; 
 
@@ -1021,41 +1024,101 @@ window.onload = function() {
         if (!actionBtn) return;
         const action = actionBtn.getAttribute('data-action');
         
-        if (action === 'toggle-quiz') {
-            isQuizMode = !isQuizMode;
-            if (isQuizMode) {
-                document.body.classList.add('quiz-mode');
-                actionBtn.className = "btn-quiz-toggle theme-emerald";
-                actionBtn.innerHTML = `<i class="fa-solid fa-book"></i> <span>도전 그만하기</span>`;
-                appLog('System', '말하기 도전 모드 가동 (음성 학습 준비 완료)');
-            } else {
-                document.body.classList.remove('quiz-mode');
-                actionBtn.className = "btn-quiz-toggle theme-yellow";
-                actionBtn.innerHTML = `<i class="fa-solid fa-microphone"></i> <span>말하기 도전</span>`;
-                appLog('System', '말하기 도전 해제 ➡️ 일반 열람 대기 상태');
-                
-                solvedHanjas.clear();
-                isCardLock = false; 
+        switch (action) {
+            case 'toggle-quiz':
+                isQuizMode = !isQuizMode;
+                if (isQuizMode) {
+                    document.body.classList.add('quiz-mode');
+                    actionBtn.className = "btn-quiz-toggle theme-emerald";
+                    actionBtn.innerHTML = `<i class="fa-solid fa-book"></i> <span>도전 그만하기</span>`;
+                    appLog('System', '말하기 도전 모드 가동 (음성 학습 준비 완료)');
+                } else {
+                    document.body.classList.remove('quiz-mode');
+                    actionBtn.className = "btn-quiz-toggle theme-yellow";
+                    actionBtn.innerHTML = `<i class="fa-solid fa-microphone"></i> <span>말하기 도전</span>`;
+                    appLog('System', '말하기 도전 해제 ➡️ 일반 열람 대기 상태');
+                    
+                    solvedHanjas.clear();
+                    isCardLock = false; 
 
-                speechEngine.abort();
-                resetSingleTabDOM(activeTab);
+                    speechEngine.abort();
+                    resetSingleTabDOM(activeTab);
 
-                tabsNeedReset.clear();
-                for (let i = 1; i <= totalPages; i++) {
-                    if (i !== activeTab) tabsNeedReset.add(i);
+                    tabsNeedReset.clear();
+                    for (let i = 1; i <= totalPages; i++) {
+                        if (i !== activeTab) tabsNeedReset.add(i);
+                    }
+                    if (activeTab !== 13) tabsNeedReset.add(13);
+
+                    processingTargetIndex = null;
+                    evaluationTargetIndex = null;
+                    switchTab(activeTab);
                 }
-                if (activeTab !== 13) tabsNeedReset.add(13);
-
-                processingTargetIndex = null;
-                evaluationTargetIndex = null;
-                switchTab(activeTab);
-            }
-        } else if (action === 'close-modal') {
-            closeModal();
-        } else if (action === 'modal-tts') {
-            audioEngine.speak(currentVoiceHun); 
+                break;
+            case 'close-modal':
+                closeModal();
+                break;
+            case 'modal-tts':
+                audioEngine.speak(currentVoiceHun);
+                break;
+            case 'title-click':
+                handleTitleClick(e);
+                break;
+            case 'open-grade-modal':
+                openGradeModal();
+                break;
+            case 'close-grade-modal':
+                closeGradeModal();
+                break;
+            case 'open-settings-modal':
+                openSettingsModal();
+                break;
+            case 'close-settings-modal':
+                closeSettingsModal();
+                break;
+            case 'prev-page':
+                prevPage();
+                break;
+            case 'next-page':
+                nextPage();
+                break;
+            case 'toggle-favorites':
+                toggleFavorites();
+                break;
+            case 'set-modal-mode':
+                setModalMode(actionBtn.getAttribute('data-mode'));
+                break;
+            case 'prev-modal-hanja':
+                prevModalHanja();
+                break;
+            case 'next-modal-hanja':
+                nextModalHanja();
+                break;
+            case 'play-modal-writing':
+                playModalWriting();
+                break;
+            case 'pause-modal-writing':
+                pauseModalWriting();
+                break;
+            case 'step-prev-modal-stroke':
+                stepPrevModalStroke();
+                break;
+            case 'step-next-modal-stroke':
+                stepNextModalStroke();
+                break;
+            case 'reset-modal-writing':
+                resetModalWriting();
+                break;
         }
     });
+
+    // 슬라이더 변경 감지 리스너 단일 바인딩
+    const sliderEl = document.getElementById('threshold-slider');
+    if (sliderEl) {
+        sliderEl.addEventListener('input', function () {
+            updateThresholdFromSlider(this.value);
+        });
+    }
 
     document.getElementById('detail-modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
@@ -1086,3 +1149,16 @@ window.onload = function() {
         document.getElementById('dev-console').classList.add('hidden');
     });
 };
+
+// 외부 및 브라우저 콘솔 연동용 단일 네임스페이스 노출
+global.HanjaApp = {
+    getGrade: function () { return currentGrade; },
+    setGrade: changeAppGrade,
+    getThreshold: function () { return currentThreshold; },
+    setThreshold: updateThresholdFromSlider,
+    switchTab: switchTab,
+    toggleDevConsole: toggleDevConsole,
+    log: appLog
+};
+
+})(typeof window !== 'undefined' ? window : this);
