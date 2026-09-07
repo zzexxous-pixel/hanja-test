@@ -18,30 +18,26 @@ jobs:
       with:
         node-version: lts/*
 
-    # 💡 이전 대화에서 설계한 초고속 브라우저 캐싱 레이어 탑재
     - name: 3. Playwright 브라우저 캐시 상태 확인
       uses: actions/cache@v4
       id: playwright-cache
       with:
         path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+        key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
 
     - name: 4. 프로젝트 의존성 라이브러리 자동 설치
       run: npm install
 
-    - name: 5. 가상 브라우저(크롬) 엔진 신규 다운로드 (캐시 미적중 시)
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
+    - name: 5. Playwright 브라우저 엔진 및 리눅스 종속성 무결성 설치
       run: npx playwright install --with-deps chromium
 
-    - name: 6. 리눅스 시스템 브라우저 종속성만 초고속 주입 (캐시 적중 시)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
-
-    - name: 7. 🔥 운영 이관 전 10대 철벽 시나리오 최종 전수 검증
+    - name: 6. 🔥 운영 이관 전 10대 철벽 시나리오 최종 전수 검증
       run: npx playwright test
 
     # 🚀 이제 방해꾼 없이 깨끗한 권한으로 운영 저장소 이력을 통째로 갱신합니다.
-    - name: 8. 테스트 통과 완료본 운영(hanja) 저장소로 무결성 원터치 배포
+    - name: 7. 테스트 통과 완료본 운영(hanja) 저장소로 무결성 원터치 배포
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
