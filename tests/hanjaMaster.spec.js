@@ -16,7 +16,7 @@ test.describe('바른한자 - 기본 기능 및 모달 테스트 (일반 모드)
   test('시나리오 1: 메인 페이지 초기 로드 및 디자인 스냅샷 검사', async ({ page }) => {
     // 헤더 타이틀 노출 확인 (새로 바뀐 #header-grade-title 선택자 적용)
     const title = page.locator('#header-grade-title');
-    await expect(title).toHaveText('바른한자');
+    await expect(title).toHaveText('바른한자 [4급]');
 
     // 기본 1페이지 인디케이터 확인 (50자 단위 분할 스펙)
     const pager = page.locator('#page-indicator');

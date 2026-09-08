@@ -974,7 +974,7 @@ window.onload = function() {
 
     const titleEl = document.getElementById('header-grade-title');
     if (titleEl) {
-        titleEl.innerText = `${currentGrade} 바른한자`;
+        titleEl.innerText = `바른한자 [${currentGrade}]`;
     }
 
     preRenderStaticTables();
