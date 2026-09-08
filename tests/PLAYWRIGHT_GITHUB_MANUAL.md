@@ -1,4 +1,4 @@
-# 📘 4급 한자 마스터 - 깃허브(CI/CD) 자동화 테스트 통합 매뉴얼 (최종본)
+# 📘 바른한자 - 깃허브(CI/CD) 자동화 테스트 통합 매뉴얼 (최종본)
 
 ## ⏱️ [요약] 깃허브 CI 테스트 핵심 가이드
 
@@ -120,7 +120,7 @@ if (process.platform === 'win32') {
 `.github/workflows/playwright.yml` 경로에 파일을 생성하고 아래 코드를 붙여넣습니다.
 
 ```yaml
-name: 한자 마스터 CI 기능 전수 테스트
+name: 바른한자 CI 기능 전수 테스트
 on:
   push:
     branches: [ main, master ]

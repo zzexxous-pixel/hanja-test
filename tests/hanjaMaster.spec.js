@@ -11,12 +11,12 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState('networkidle');
 });
 
-test.describe('배정 한자 마스터 - 기본 기능 및 모달 테스트 (일반 모드)', () => {
+test.describe('바른한자 - 기본 기능 및 모달 테스트 (일반 모드)', () => {
 
   test('시나리오 1: 메인 페이지 초기 로드 및 디자인 스냅샷 검사', async ({ page }) => {
     // 헤더 타이틀 노출 확인 (새로 바뀐 #header-grade-title 선택자 적용)
     const title = page.locator('#header-grade-title');
-    await expect(title).toHaveText('4급 한자 마스터');
+    await expect(title).toHaveText('바른한자');
 
     // 기본 1페이지 인디케이터 확인 (50자 단위 분할 스펙)
     const pager = page.locator('#page-indicator');
@@ -75,7 +75,7 @@ test.describe('배정 한자 마스터 - 기본 기능 및 모달 테스트 (일
 });
 
 
-test.describe('배정 한자 마스터 - 자가 테스트 및 음성 인식 인프라 검증', () => {
+test.describe('바른한자 - 자가 테스트 및 음성 인식 인프라 검증', () => {
 
   test('시나리오 4: 말하기 도전(퀴즈 모드) 활성화 및 훈음 블러 스크리닝 검증', async ({ page }) => {
     // 1. 말하기 도전 토글 버튼 클릭
@@ -154,7 +154,7 @@ test.describe('배정 한자 마스터 - 자가 테스트 및 음성 인식 인�
 });
 
 
-test.describe('배정 한자 마스터 - 이스터에그 디버그 모듈 테스트', () => {
+test.describe('바른한자 - 이스터에그 디버그 모듈 테스트', () => {
 
   test('시나리오 6: 헤더 타이틀 5회 연타 시 개발자 시스템 로그 콘솔 활성화 검증', async ({ page }) => {
     // 💡 툴팁 제거 스펙에 의거하여 책 아이콘(.fa-book-open) 클래스의 부모 요소를 타격하도록 선택자 교정 완료
@@ -166,11 +166,11 @@ test.describe('배정 한자 마스터 - 이스터에그 디버그 모듈 테스
 
     const devConsole = page.locator('#dev-console');
     await expect(devConsole).not.toHaveClass(/hidden/);
-    await expect(devConsole.locator('#dev-console-body')).toContainText('한자 마스터 학습 엔진 초기화 가동');
+    await expect(devConsole.locator('#dev-console-body')).toContainText('바른한자 학습 엔진 초기화 가동');
   });
 });
 
-test.describe('배정 한자 마스터 - 예외 케이스 및 데이터 무결성 철벽 검증', () => {
+test.describe('바른한자 - 예외 케이스 및 데이터 무결성 철벽 검증', () => {
 
   test('시나리오 8: 음성인식 실패(오답) 시 오답 피드백(❌) 및 블러 가림막 유지 검증', async ({ page }) => {
     await page.addInitScript(() => {
@@ -243,12 +243,12 @@ test.describe('배정 한자 마스터 - 예외 케이스 및 데이터 무결�
   });
 });
 
-test.describe('배정 한자 마스터 - 신규 모달 레이어 및 옵션 설정 검증', () => {
+test.describe('바른한자 - 신규 모달 레이어 및 옵션 설정 검증', () => {
 
   // tests/hanjaMaster.spec.js 의 시나리오 11 부분 수정
   test('시나리오 11: 급수 선택 그리드 모달 기동 및 데이터 유무 비활성화 무결성 테스트', async ({ page }) => {
     // 1. 헤더의 급수 선택 트리거 버튼 클릭
-    const gradeTrigger = page.locator('button:has-text("한자 마스터")');
+    const gradeTrigger = page.locator('button:has-text("바른한자")');
     await gradeTrigger.click();
 
     const gradeModal = page.locator('#grade-modal');

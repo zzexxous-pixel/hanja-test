@@ -806,7 +806,7 @@ function changeAppGrade(targetGrade) {
 
     const titleEl = document.getElementById('header-grade-title');
     if (titleEl) {
-        titleEl.innerText = `${targetGrade} 한자 마스터`;
+        titleEl.innerText = `${targetGrade} 바른한자`;
     }
 
     switchTab(1);
@@ -965,7 +965,7 @@ function initDebugConsoleTopResize() {
 }
 
 window.onload = function() {
-    appLog('System', `한자 마스터 학습 엔진 초기화 가동 (선택 급수: ${currentGrade}, 판정 기준: ${Math.round(currentThreshold * 100)}%)`);
+    appLog('System', `바른한자 학습 엔진 초기화 가동 (선택 급수: ${currentGrade}, 판정 기준: ${Math.round(currentThreshold * 100)}%)`);
     
     loadGradeData(currentGrade);
     
@@ -974,7 +974,7 @@ window.onload = function() {
 
     const titleEl = document.getElementById('header-grade-title');
     if (titleEl) {
-        titleEl.innerText = `${currentGrade} 한자 마스터`;
+        titleEl.innerText = `${currentGrade} 바른한자`;
     }
 
     preRenderStaticTables();

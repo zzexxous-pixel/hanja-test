@@ -1,4 +1,4 @@
-name: 한자 마스터 CI 기능 전수 테스트
+name: 바른한자 CI 기능 전수 테스트
 on:
   push:
     branches: [ main, master ]
