@@ -806,7 +806,7 @@ function changeAppGrade(targetGrade) {
 
     const titleEl = document.getElementById('header-grade-title');
     if (titleEl) {
-        titleEl.innerText = `${targetGrade} 바른한자`;
+        titleEl.innerText = `바른한자 [${targetGrade}]`;
     }
 
     switchTab(1);
