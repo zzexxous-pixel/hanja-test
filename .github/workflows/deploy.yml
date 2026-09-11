@@ -22,7 +22,7 @@ jobs:
     steps:
       # 1. 레포지토리 코드 가져오기 (전체 히스토리 조회를 위해 fetch-depth: 0 설정 필수)
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -66,10 +66,10 @@ jobs:
           sed -i "s/{{COMMIT_DATE}}/$COMMIT_DATE KST/g" index.html
 
       - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
