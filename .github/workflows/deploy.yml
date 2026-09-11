@@ -63,6 +63,7 @@ jobs:
           # 6. 파일 내 플레이스홀더 치환
           sed -i "s/{{APP_VERSION}}/$FULL_VERSION/g" index.html
           sed -i "s/{{APP_VERSION}}/$FULL_VERSION/g" script.js
+          sed -i "s/{{APP_VERSION}}/$FULL_VERSION/g" sw.js
           sed -i "s/{{COMMIT_DATE}}/$COMMIT_DATE KST/g" index.html
 
       - name: Upload Artifact

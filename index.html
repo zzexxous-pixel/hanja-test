@@ -9,6 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v={{APP_VERSION}}">
     <link rel="icon" href="favicon.ico">
+
+    <!-- PWA Essential Meta & Manifest -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#1d4ed8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="바른한자">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col select-none">
 
@@ -233,5 +242,20 @@
     <script src="speechEngine.js?v={{APP_VERSION}}"></script>
     <script src="writingEngine.js?v={{APP_VERSION}}"></script>
     <script src="script.js?v={{APP_VERSION}}"></script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => {
+                        console.log('[PWA] ServiceWorker registered with scope:', reg.scope);
+                    })
+                    .catch(err => {
+                        console.error('[PWA] ServiceWorker registration failed:', err);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

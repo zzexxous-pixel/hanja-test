@@ -1,0 +1,69 @@
+const CACHE_VERSION = 'bareunhanja-{{APP_VERSION}}';
+
+// 반드시 로컬에 존재하는 핵심 파일만 프리캐싱 (하나라도 404면 설치 중단 방지)
+const PRECACHE_ASSETS = [
+    './',
+    './index.html',
+    './style.css',
+    './manifest.webmanifest',
+    './icon-192.png',
+    './icon-512.png',
+    './hanja_data.js',
+    './audioEngine.js',
+    './speechEngine.js',
+    './writingEngine.js',
+    './script.js'
+];
+
+self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(CACHE_VERSION).then((cache) => {
+            return cache.addAll(PRECACHE_ASSETS);
+        })
+    );
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((keys) => {
+            return Promise.all(
+                keys.map((key) => {
+                    if (key !== CACHE_VERSION) {
+                        return caches.delete(key);
+                    }
+                })
+            );
+        })
+    );
+    self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+
+    // Cache First, Network Fallback with Dynamic Caching
+    event.respondWith(
+        caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+            return fetch(event.request).then((networkResponse) => {
+                // 유효한 응답 또는 opaque 리소스(외부 CDN 폰트/스타일)인 경우 동적 캐싱
+                if (!networkResponse || (networkResponse.status !== 200 && networkResponse.type !== 'opaque')) {
+                    return networkResponse;
+                }
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_VERSION).then((cache) => {
+                    cache.put(event.request, responseToCache);
+                });
+                return networkResponse;
+            }).catch(() => {
+                // 오프라인 상태에서 HTML 요청 실패 시 메인 페이지 서빙
+                if (event.request.headers.get('accept')?.includes('text/html')) {
+                    return caches.match('./index.html', { ignoreSearch: true });
+                }
+            });
+        })
+    );
+});
