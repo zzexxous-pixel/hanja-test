@@ -42,6 +42,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
+    // 추가: http 또는 https 요청이 아니면 가로채지 않음
+    if (!event.request.url.startsWith('http')) return;
+    
     // Cache First, Network Fallback with Dynamic Caching
     event.respondWith(
         caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
