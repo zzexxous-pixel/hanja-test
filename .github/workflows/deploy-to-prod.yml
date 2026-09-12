@@ -28,7 +28,7 @@ jobs:
           ${{ runner.os }}-playwright-
 
     - name: 4. 프로젝트 의존성 라이브러리 자동 설치
-      run: npm ci
+      run: npm install
 
     - name: 5. Playwright 브라우저 엔진 및 리눅스 종속성 무결성 설치
       run: npx playwright install --with-deps chromium
