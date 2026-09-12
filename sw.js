@@ -4,6 +4,7 @@ const CACHE_VERSION = 'bareunhanja-{{APP_VERSION}}';
 const PRECACHE_ASSETS = [
     './',
     './index.html',
+    './tailwind-build.css',
     './style.css',
     './manifest.webmanifest',
     './icon-192.png',
