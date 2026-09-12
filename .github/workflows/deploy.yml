@@ -33,7 +33,7 @@ jobs:
       - name: Build Static Tailwind CSS
         run: |
           # 1. 의존성 없이 npx로 즉석에서 Tailwind 빌드 (클래스 추출 및 압축)
-          npx -y tailwindcss@latest --content "./**/*.{html,js}" -o tailwind-build.css --minify
+          npx -y tailwindcss@3.4.17 --content "./**/*.{html,js}" -o tailwind-build.css --minify
 
       # [핵심 엔진] VERSION 파일 기반 커밋 추적 및 패치 버전 계산
       - name: Calculate Version & Inject Data
