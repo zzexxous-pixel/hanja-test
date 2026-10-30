@@ -93,3 +93,13 @@
 - 검증: 로컬 단위11개 통과. E2E에 최초복사 원본 보존과 두 탭의 독립 수정/빈v2 재가져오기 방지 검증 추가. GitHub/배포 결과는 아래 갱신.
 - 최종 검증/배포: 코드263b465, Actions41031054277. 단위11개, 데스크톱/모바일 E2E36개(34.8초) 통과. preview 배포 및 HTTP/SHA smoke 성공. https://github.com/zzexxous-pixel/hanja-test/actions/runs/41031054277
 - 병합/운영 이관 없음. 문서만 후속 갱신한 커밋은 배포하지 않음.
+
+## main 반영 완료 / 후속 PR
+- 사용자 요청으로 PR #1을 일반 Merge 방식으로 hanja-test/main에 병합했다(2026-10-30).
+- PR: https://github.com/zzexxous-pixel/hanja-test/pull/1
+- main merge commit: 5423324aebd97e89d39d2de78571518d914adde1.
+- Actions41051711356: main/root E2E36개 및 보존 preview E2E36개 각각 통과, Pages 배포 및 main HTTP/SHA smoke 성공.
+- 기본 사이트 https://zzexxous-pixel.github.io/hanja-test/ 에 반영. /preview/ 보존. 운영 hanja 이관 없음.
+- 현재 작업 브랜치를 삭제하지 않았고, 브랜치 전환 없이 origin/main까지 fast-forward 동기화했다. 이 기록만 후속 문서 커밋으로 남긴다(자동 배포 생략).
+- 이후 글자 대조 등은 새 PR로 진행한다. 공식 자료 확보 전 전체 검수 보류 및 사용자 승인 전 구버전 즐겨찾기 로직 제거 금지 정책 유지.
+- Git 브랜치 이력상 후속 작업 가능 여부와 Arena 세션의 활성 상태는 별개. 다음 세션은 제공된 실제 branch status를 확인하고 플랫폼 제한을 보장하지 않는다.
