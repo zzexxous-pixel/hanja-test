@@ -235,5 +235,7 @@
 - 운영repo현행Pages워크플로우는push main시검증/배포/smoke수행확인. 최근수동이관41053012652(2026-10-30)성공확인. 현재GitHub연결은secrets목록403으로현재SYNC_TOKEN내용/유효성조회불가(실제전송없이인증확정불가),자격정보요청/노출없음.
 - 로컬운영환경빌드/check/단위34통과. PR의test/production브라우저검증대기. 브랜치유지,main직접push/다른브랜치전환금지유지.
 - PR#2 최초검증41203542868: test66통과,production은65+1재시도통과. 재시도원인조사: 완료획감시테스트가재생클릭전초기quiz숨김전opacity1상태부터측정하여초기dashreset을깜빡임으로오탐. 획순배지1획완료이후측정하도록완료획테스트범위수정(실제렌더링코드변경없음). test/production전체재검증후병합예정.
-- 最終PR検証41204001629成功: 単位34、test66(47.9秒)/production66(47.4秒)、再試行なし。push preview41203998225も成功。
-- ユーザー承認によりPR#2を2026-10-31T13:10:07Z merge方式でmainへ病合、mergeSHA f2e3f9cdd95cd3f5768a2c918d152329f9cbfc7c。featurebranch保持、作業branch変更なし。実際hanjaへの手動移管は未実行。mainのtestサイト再検証/配備は確認待ち。
+- 최종 PR검증41204001629 성공: 단위34/test66(47.9초)/production66(47.4초), 재시도없음. push preview41203998225도성공.
+- 사용자승인으로 PR#2를2026-10-31T13:10:07Z merge방식으로main병합, mergeSHA f2e3f9cdd95cd3f5768a2c918d152329f9cbfc7c. feature브랜치보존/작업브랜치변경없음. 실제hanja수동이관미실행.
+
+- 병합후main Actions41204339630 성공: 단위34/test루트66/preview66/Pages8초/smoke7초. test사이트 https://zzexxous-pixel.github.io/hanja-test/?v=f2e3f9c 에현재개선사항전체반영. 운영이관은수동으로남겨둠. SYNC_TOKEN현재유효성은권한상직접확인불가이나전일이관성공이력및실행시누락검증있음.
